@@ -8,17 +8,156 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+enum WorkoutSessionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  REST
 }
 
+enum SetType {
+  WARMUP
+  WORKING
+}
+
+// -----------------------------------------------------------------------------
+// USER DOMAIN
+// -----------------------------------------------------------------------------
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  name             String?
+  avatar           String?
+  timezone         String?           @default("UTC")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Workout Relations
+  workoutSchedules WorkoutSchedule[]
+  workoutSessions  WorkoutSession[]
+}
+
+// -----------------------------------------------------------------------------
+// WORKOUT DOMAIN
+// -----------------------------------------------------------------------------
+
+/// Reusable template/routine schedule (e.g., "Push Pull Legs", "Upper Lower")
+model WorkoutSchedule {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isActive    Boolean      @default(true)
+  days        WorkoutDay[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+/// Day defined within a workout schedule (e.g., "Leg Day", "Push Day")
+model WorkoutDay {
+  id          String           @id @default(cuid())
+  scheduleId  String
+  schedule    WorkoutSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  name        String
+  dayOfWeek   Int              // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  description String?
+  sessions    WorkoutSession[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([scheduleId])
+}
+
+/// Master Exercise library catalog
+model Exercise {
+  id              String        @id @default(cuid())
+  name            String
+  category        String        // e.g., CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE, CARDIO
+  description     String?
+  instructions    String?
+  defaultSets     Int?          @default(3)
+  defaultRepsMin  Int?          @default(8)
+  defaultRepsMax  Int?          @default(12)
+  isActive        Boolean       @default(true)
+  exerciseLogs    ExerciseLog[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([category])
+  @@index([name])
+}
+
+/// Actual logged workout performance instance
+model WorkoutSession {
+  id              String               @id @default(cuid())
+  userId          String
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutDayId    String?
+  workoutDay      WorkoutDay?          @relation(fields: [workoutDayId], references: [id], onDelete: SetNull)
+  name            String?
+  status          WorkoutSessionStatus @default(PLANNED)
+  skipReason      String?
+  note            String?
+  startedAt       DateTime?            @default(now())
+  endedAt         DateTime?
+  durationMinutes Int?
+  exerciseLogs    ExerciseLog[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([workoutDayId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+/// Exercise performed during a workout session
+model ExerciseLog {
+  id               String         @id @default(cuid())
+  workoutSessionId String
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  exerciseId       String
+  exercise         Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  order            Int            @default(1)
+  note             String?
+  setLogs          SetLog[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([workoutSessionId])
+  @@index([exerciseId])
+}
+
+/// Individual set metrics recorded within an exercise log
+model SetLog {
+  id            String      @id @default(cuid())
+  exerciseLogId String
+  exerciseLog   ExerciseLog @relation(fields: [exerciseLogId], references: [id], onDelete: Cascade)
+  type          SetType     @default(WORKING)
+  setNumber     Int
+  reps          Int?
+  weight        Float?
+  rpe           Float?      // Rate of Perceived Exertion (1-10)
+  completed     Boolean     @default(true)
+  note          String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([exerciseLogId])
+}
+
+// -----------------------------------------------------------------------------
+// SYSTEM / HEALTH
+// -----------------------------------------------------------------------------
 model HealthCheck {
   id        String   @id @default(cuid())
   status    String   @default("ok")
   checkedAt DateTime @default(now())
 }
-

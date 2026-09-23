@@ -55,6 +55,29 @@ generator client {
 
 ---
 
+## Domain Models
+
+### 1. User Domain
+- `User`: Core identity, timezone, avatar, profile metadata.
+
+### 2. Workout Domain
+```mermaid
+graph TD
+    User["User"] -->|1:N| WorkoutSchedule["WorkoutSchedule (Template)"]
+    WorkoutSchedule -->|1:N| WorkoutDay["WorkoutDay (e.g. Push Day)"]
+    User -->|1:N| WorkoutSession["WorkoutSession (Status: PLANNED, IN_PROGRESS, COMPLETED, SKIPPED, REST)"]
+    WorkoutDay -.->|Optional Reference| WorkoutSession
+    WorkoutSession -->|1:N| ExerciseLog["ExerciseLog (order, note)"]
+    Exercise["Exercise (Master Catalog)"] -->|1:N| ExerciseLog
+    ExerciseLog -->|1:N| SetLog["SetLog (Type: WARMUP | WORKING, setNumber, reps, weight, completed, note)"]
+```
+
+#### Enums
+- **`WorkoutSessionStatus`**: `PLANNED` \| `IN_PROGRESS` \| `COMPLETED` \| `SKIPPED` \| `REST`
+- **`SetType`**: `WARMUP` \| `WORKING`
+
+---
+
 ## Database Workflows & Commands
 
 From the monorepo root:
