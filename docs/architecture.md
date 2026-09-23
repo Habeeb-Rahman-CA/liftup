@@ -1,6 +1,7 @@
 # System Architecture
 
 ## Overview
+
 Liftup is structured as a high-performance **pnpm + Turborepo monorepo** designed for full-stack scalability. It separates frontend delivery, backend RESTful business logic, and shared package utilities while maintaining tight type safety and optimized developer ergonomics.
 
 ---
@@ -32,7 +33,7 @@ graph TD
     WebApp -->|Reverse Proxy /api/*| API["apps/api (NestJS 11 :4000)"]
     API -->|Pooled Queries :5432| NeonPooled["Neon DB (Connection Pooler)"]
     API -->|Direct Migrations| NeonDirect["Neon DB (Direct Connection)"]
-    
+
     TypesPkg["packages/types"] -.->|Shared Types| WebApp
     TypesPkg -.->|Shared Types| API
     ConfigPkg["packages/config"] -.->|Shared Config| WebApp
@@ -40,16 +41,19 @@ graph TD
 ```
 
 ### 1. Web Application (`apps/web`)
+
 - Built on **Next.js 16 App Router** with React 19 and Tailwind CSS v4.
 - Uses `shadcn/ui` and `@base-ui/react` primitives.
 - Configured with a reverse proxy in `next.config.ts` mapping all `/api/*` requests directly to `http://localhost:4000/api/*`, eliminating CORS friction during local development.
 
 ### 2. Backend API (`apps/api`)
+
 - Built with **NestJS 11** using modern ESM and TypeScript.
 - Follows modular architectural patterns (`PrismaModule`, `HealthModule`, domain resource modules).
 - Integrates Prisma ORM for database interaction with Neon PostgreSQL.
 
 ### 3. Shared Packages (`packages/*`)
+
 - **`@liftup/types`**: Type definitions, API response shapes (`ApiResponse<T>`), health interfaces (`HealthStatus`), and domain models shared across client and server.
 - **`@liftup/config`**: Base TypeScript compiler configurations (`tsconfig.base.json`, `tsconfig.react.json`, `tsconfig.node.json`).
 - **`@liftup/eslint-config`**: Standardized ESLint rules for Node, Next.js, and NestJS environments.

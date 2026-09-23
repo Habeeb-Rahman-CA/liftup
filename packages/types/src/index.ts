@@ -47,12 +47,7 @@ export interface UserProfile {
 // -----------------------------------------------------------------------------
 // WORKOUT DOMAIN ENUMS & TYPES
 // -----------------------------------------------------------------------------
-export type WorkoutSessionStatus =
-  | 'PLANNED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'SKIPPED'
-  | 'REST';
+export type WorkoutSessionStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'REST';
 
 export type SetType = 'WARMUP' | 'WORKING';
 

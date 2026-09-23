@@ -1,13 +1,13 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
-const backendUrl = process.env.BACKEND_URL || "http://localhost:4000";
+const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@liftup/types"],
+  transpilePackages: ['@liftup/types'],
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
+        source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,
       },
     ];

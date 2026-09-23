@@ -1,8 +1,8 @@
 ---
 name: prisma-platform-core-concepts
 metadata:
-  library: "prisma"
-  library_version: "8.0.0-rc.15"
+  library: 'prisma'
+  library_version: '8.0.0-rc.15'
   version: 2026.9.1
 description: >-
   Use when hosting, deploying, or operating an app on the Prisma Platform:
@@ -40,13 +40,13 @@ and modules in code belongs to `prisma-composer-core-concepts`.
 
 One CLI, `prisma`, fronts a set of products designed to be used together:
 
-| Product | What it is | Concepts live in |
-| --- | --- | --- |
-| Prisma ORM (Prisma 8) | Data contract, typed queries, migrations | `prisma-orm-core-concepts` |
-| Prisma Composer | The app declaration: services, databases, buckets, wiring | `prisma-composer-core-concepts` |
-| Prisma Compute | Hosting: runs your services next to your data | this skill |
-| Prisma Postgres | Managed PostgreSQL | this skill |
-| Prisma Storage | S3-compatible object storage | this skill |
+| Product               | What it is                                                | Concepts live in                |
+| --------------------- | --------------------------------------------------------- | ------------------------------- |
+| Prisma ORM (Prisma 8) | Data contract, typed queries, migrations                  | `prisma-orm-core-concepts`      |
+| Prisma Composer       | The app declaration: services, databases, buckets, wiring | `prisma-composer-core-concepts` |
+| Prisma Compute        | Hosting: runs your services next to your data             | this skill                      |
+| Prisma Postgres       | Managed PostgreSQL                                        | this skill                      |
+| Prisma Storage        | S3-compatible object storage                              | this skill                      |
 
 **Every deployed app is a Composer app.** Your server code plus a declaration
 (`module.ts`) naming its services, databases, and buckets. The declaration is
@@ -78,12 +78,12 @@ Two config files with different owners:
    `composer`, and `skills`. The composed shape:
 
    ```ts
-   import { definePrismaConfig } from "prisma/config";
-   import { defineConfig } from "@prisma/orm-postgres/config";
+   import { definePrismaConfig } from 'prisma/config';
+   import { defineConfig } from '@prisma/orm-postgres/config';
 
    export default definePrismaConfig({
-     orm: defineConfig({ contract: "./src/prisma/contract.prisma" }),
-     skills: { agents: ["claude"] },
+     orm: defineConfig({ contract: './src/prisma/contract.prisma' }),
+     skills: { agents: ['claude'] },
    });
    ```
 
@@ -247,10 +247,10 @@ code written against it runs unchanged on the platform.
 
 Configuration has two independent axes:
 
-| Axis | Values | Meaning |
-| --- | --- | --- |
-| Class | `production`, `preview` | Which branches resolve it: production-class values reach the production branch, preview-class values reach every preview |
-| Scope | project template, branch override | A template applies to all branches of its class; an override pins a value to one named preview branch |
+| Axis  | Values                            | Meaning                                                                                                                  |
+| ----- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Class | `production`, `preview`           | Which branches resolve it: production-class values reach the production branch, preview-class values reach every preview |
+| Scope | project template, branch override | A template applies to all branches of its class; an override pins a value to one named preview branch                    |
 
 Rules that bite:
 
