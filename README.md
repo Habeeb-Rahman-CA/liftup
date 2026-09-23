@@ -1,80 +1,96 @@
-# Liftup - Next.js, NestJS & Neon DB Monorepo
+# Liftup Monorepo
 
-A modern full-stack template featuring **Next.js 16** (App Router, Tailwind CSS, shadcn/ui), **NestJS 11** (Modular REST API), and **Neon DB** (Serverless PostgreSQL) configured with **Prisma ORM**.
+A modern full-stack monorepo featuring **Next.js 16** (App Router, Tailwind CSS, shadcn/ui), **NestJS 11** (Modular REST API), and **Neon Serverless PostgreSQL** with **Prisma ORM**, managed via **pnpm workspaces** and **Turborepo**.
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Structure
 
 ```
 liftup/
-├── frontend/             # Next.js 16 (React 19, Tailwind CSS v4, shadcn/ui)
-│   ├── src/app/          # Next.js App Router
-│   ├── src/components/ui # shadcn/ui components (Button, Card, Badge)
-│   └── next.config.ts    # Configured with proxy to NestJS /api
-├── backend/              # NestJS 11 (TypeScript, ESM, Vitest)
-│   ├── src/prisma/       # PrismaService & PrismaModule
-│   ├── src/health/       # Database & Server Health Check (/api/health)
-│   ├── prisma/           # schema.prisma configured for Neon DB
-│   └── .env.example      # Neon connection string templates
-└── package.json          # Root npm workspaces orchestration
+│
+├── apps/
+│   ├── web/                 # Next.js 16 App Router (@liftup/web)
+│   └── api/                 # NestJS 11 REST API (@liftup/api)
+│
+├── packages/
+│   ├── types/               # Shared TypeScript types & DTOs (@liftup/types)
+│   ├── config/              # Shared tsconfig presets (@liftup/config)
+│   └── eslint-config/       # Shared linting configs (@liftup/eslint-config)
+│
+├── docs/
+│   ├── architecture.md      # System architecture & component design
+│   ├── database.md          # Neon DB setup & Prisma workflows
+│   ├── api.md               # REST API documentation & specifications
+│   └── roadmap.md           # Product & engineering roadmap
+│
+├── .gitignore
+├── package.json             # Root orchestration scripts
+├── pnpm-workspace.yaml      # pnpm workspace definition
+├── turbo.json               # Turborepo task pipeline
+└── README.md
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Configure Neon Database
-1. Create a serverless PostgreSQL database at [neon.tech](https://neon.tech).
-2. Copy your connection details into `backend/.env` (use `backend/.env.example` as a template):
+### 1. Install Dependencies
+```bash
+pnpm install
+```
 
+### 2. Configure Database
+1. Create a serverless PostgreSQL database at [neon.tech](https://neon.tech).
+2. Copy your connection strings into `apps/api/.env` (refer to `apps/api/.env.example`):
 ```env
 PORT=4000
-
-# Pooled connection string (with ?sslmode=require) for queries:
 DATABASE_URL="postgresql://[user]:[password]@[endpoint]-pooler.[region].aws.neon.tech/neondb?sslmode=require"
-
-# Direct / unpooled connection string (without -pooler) for migrations:
 DIRECT_URL="postgresql://[user]:[password]@[endpoint].[region].aws.neon.tech/neondb?sslmode=require"
 ```
 
-3. Push your Prisma schema to Neon:
+3. Push the Prisma schema to Neon:
 ```bash
-npm run prisma:push
+pnpm prisma:push
 ```
 
-### 2. Run the Development Servers
-Start both frontend and backend concurrently:
+### 3. Run Development Servers
+Start both the web application and backend API concurrently with Turborepo:
 ```bash
-npm run dev
+pnpm dev
 ```
 
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:4000/api](http://localhost:4000/api)
-- **Health Check**: [http://localhost:4000/api/health](http://localhost:4000/api/health) (or via frontend proxy: `http://localhost:3000/api/health`)
+- **Web App**: [http://localhost:3000](http://localhost:3000)
+- **API Server**: [http://localhost:4000/api](http://localhost:4000/api)
+- **Health Check**: [http://localhost:4000/api/health](http://localhost:4000/api/health) (or via reverse proxy at `http://localhost:3000/api/health`)
 
 ---
 
-## 🛠️ Monorepo Scripts
+## 🛠️ Monorepo Commands
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Run Next.js (`:3000`) and NestJS (`:4000`) concurrently |
-| `npm run dev:frontend` | Start Next.js development server only |
-| `npm run dev:backend` | Start NestJS development server with watch mode |
-| `npm run build` | Build both frontend and backend |
-| `npm run test` | Run backend test suites (Vitest) |
-| `npm run prisma:push` | Push schema changes directly to Neon DB |
-| `npm run prisma:migrate` | Create and apply Prisma migrations |
-| `npm run prisma:studio` | Launch Prisma Studio GUI database browser |
+| `pnpm dev` | Run all apps concurrently in development mode with Turborepo |
+| `pnpm dev:web` | Start Next.js frontend development server only (`:3000`) |
+| `pnpm dev:api` | Start NestJS backend development server only (`:4000`) |
+| `pnpm start` | Start both frontend and backend production servers concurrently |
+| `pnpm start:web` | Start Next.js production server only |
+| `pnpm start:api` | Start NestJS backend production server only |
+| `pnpm build` | Build all apps and packages |
+| `pnpm build:web` | Build Next.js production bundle |
+| `pnpm build:api` | Build NestJS server bundle |
+| `pnpm test` | Run test suites across the monorepo |
+| `pnpm lint` | Run linter across all workspaces |
+| `pnpm prisma:generate` | Generate Prisma Client artifacts in `apps/api` |
+| `pnpm prisma:push` | Push schema changes directly to Neon DB |
+| `pnpm prisma:migrate` | Run database migrations |
+| `pnpm prisma:studio` | Launch Prisma Studio web GUI |
 
 ---
 
-## 🎨 Adding More shadcn/ui Components
-
-To add more shadcn/ui components:
-```bash
-cd frontend
-npx shadcn@latest add dialog dropdown-menu input
-```
-
+## 📚 Documentation
+For detailed guides and architecture, explore the [`docs/`](file:///c:/Users/habeebu/Desktop/Habeeb/Personal/liftup/docs) directory:
+- [Architecture Guide](file:///c:/Users/habeebu/Desktop/Habeeb/Personal/liftup/docs/architecture.md)
+- [Database & Neon Configuration](file:///c:/Users/habeebu/Desktop/Habeeb/Personal/liftup/docs/database.md)
+- [API Specifications](file:///c:/Users/habeebu/Desktop/Habeeb/Personal/liftup/docs/api.md)
+- [Project Roadmap](file:///c:/Users/habeebu/Desktop/Habeeb/Personal/liftup/docs/roadmap.md)

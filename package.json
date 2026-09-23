@@ -2,25 +2,27 @@
   "name": "liftup-monorepo",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
+  "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "dev": "concurrently -n \"next,nest\" -c \"cyan,magenta\" \"npm run dev --workspace=frontend\" \"npm run start:dev --workspace=backend\"",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "dev:backend": "npm run start:dev --workspace=backend",
-    "build": "npm run build --workspaces",
-    "build:frontend": "npm run build --workspace=frontend",
-    "build:backend": "npm run build --workspace=backend",
-    "test": "npm run test --workspace=backend",
-    "prisma:generate": "npm run prisma:generate --workspace=backend",
-    "prisma:push": "npm run prisma:push --workspace=backend",
-    "prisma:migrate": "npm run prisma:migrate --workspace=backend",
-    "prisma:studio": "npm run prisma:studio --workspace=backend"
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@liftup/web",
+    "dev:api": "turbo run dev --filter=@liftup/api",
+    "start": "turbo run start",
+    "start:web": "turbo run start --filter=@liftup/web",
+    "start:api": "turbo run start --filter=@liftup/api",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=@liftup/web",
+    "build:api": "turbo run build --filter=@liftup/api",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "prisma:generate": "pnpm --filter=@liftup/api prisma:generate",
+    "prisma:push": "pnpm --filter=@liftup/api prisma:push",
+    "prisma:migrate": "pnpm --filter=@liftup/api prisma:migrate",
+    "prisma:studio": "pnpm --filter=@liftup/api prisma:studio",
+    "clean": "turbo run clean"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "turbo": "^2.4.4"
   }
 }
-

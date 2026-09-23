@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { HealthStatus } from "@liftup/types";
 import {
   Card,
   CardHeader,
@@ -12,20 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-interface HealthData {
-  status: string;
-  service: string;
-  timestamp: string;
-  database: {
-    provider: string;
-    status: "connected" | "disconnected";
-    latencyMs?: number;
-    error?: string;
-  };
-}
-
 export default function Home() {
-  const [health, setHealth] = useState<HealthData | null>(null);
+  const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +26,7 @@ export default function Home() {
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-      const data: HealthData = await res.json();
+      const data: HealthStatus = await res.json();
       setHealth(data);
     } catch (err) {
       setError((err as Error).message);
@@ -48,7 +37,35 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchHealth();
+    let isMounted = true;
+
+    async function loadInitialHealth() {
+      try {
+        const res = await fetch("/api/health");
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        const data: HealthStatus = await res.json();
+        if (isMounted) {
+          setHealth(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError((err as Error).message);
+          setHealth(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadInitialHealth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -58,13 +75,13 @@ export default function Home() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-800 pb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">Liftup Stack</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Liftup Monorepo</h1>
               <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
-                Ready
+                pnpm + Turborepo
               </Badge>
             </div>
             <p className="text-neutral-400 text-sm mt-1">
-              Next.js 16 + shadcn/ui + NestJS + Neon DB (PostgreSQL)
+              Next.js 16 (`apps/web`) + NestJS 11 (`apps/api`) + Shared Types & Neon DB
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -86,13 +103,13 @@ export default function Home() {
           <Card className="bg-neutral-900 border-neutral-800 text-neutral-100">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">Next.js Frontend</CardTitle>
+                <CardTitle className="text-base font-semibold">Web App (Next.js)</CardTitle>
                 <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Online
+                  @liftup/web
                 </Badge>
               </div>
               <CardDescription className="text-neutral-400">
-                App Router, Tailwind CSS, shadcn/ui
+                App Router, Tailwind CSS v4, shadcn/ui
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -109,7 +126,7 @@ export default function Home() {
           <Card className="bg-neutral-900 border-neutral-800 text-neutral-100">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">NestJS Backend</CardTitle>
+                <CardTitle className="text-base font-semibold">API (NestJS)</CardTitle>
                 {loading ? (
                   <Badge variant="outline" className="border-neutral-700 text-neutral-400">Checking...</Badge>
                 ) : health ? (
@@ -121,7 +138,7 @@ export default function Home() {
                 )}
               </div>
               <CardDescription className="text-neutral-400">
-                Modular NestJS REST API
+                Modular NestJS REST API (@liftup/api)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -131,7 +148,7 @@ export default function Home() {
               <p className="text-xs text-neutral-400 mt-1">
                 Status:{" "}
                 <span className="font-mono text-neutral-200">
-                  {health ? health.service : error ? "Not reachable (run npm run start:backend)" : "Checking..."}
+                  {health ? health.service || "Online" : error ? "Not reachable (run pnpm dev)" : "Checking..."}
                 </span>
               </p>
             </CardContent>
@@ -162,7 +179,7 @@ export default function Home() {
               <p className="text-xs text-neutral-400">
                 Status:{" "}
                 <span className="font-mono text-neutral-200">
-                  {health?.database?.status ?? "Configure backend/.env"}
+                  {health?.database?.status ?? "Configure apps/api/.env"}
                 </span>
               </p>
               {health?.database?.latencyMs !== undefined && (
@@ -196,8 +213,8 @@ export default function Home() {
                 </a>
                 .
               </p>
-              <p>2. Edit <code className="bg-neutral-800 text-emerald-400 px-1.5 py-0.5 rounded text-xs">backend/.env</code>:</p>
-              <pre className="bg-neutral-950 p-3 rounded-lg text-xs font-mono text-neutral-300 overflow-x-auto border border-neutral-800">
+              <p>2. Edit <code className="bg-neutral-800 text-emerald-400 px-1.5 py-0.5 rounded text-xs">apps/api/.env</code>:</p>
+              <pre className="bg-neutral-950 p-3 rounded-lg text-xs font-mono text-neutral-300 border border-neutral-800">
 {`# Pooled URL for queries
 DATABASE_URL="postgresql://user:pass@ep-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
@@ -206,39 +223,43 @@ DIRECT_URL="postgresql://user:pass@ep.us-east-2.aws.neon.tech/neondb?sslmode=req
               </pre>
               <p>3. Push your Prisma schema to Neon:</p>
               <pre className="bg-neutral-950 p-2.5 rounded text-xs font-mono text-neutral-300 border border-neutral-800">
-npm run prisma:push --workspace=backend
+pnpm prisma:push
               </pre>
             </CardContent>
           </Card>
 
           <Card className="bg-neutral-900 border-neutral-800 text-neutral-100">
             <CardHeader>
-              <CardTitle className="text-lg">Useful Commands</CardTitle>
+              <CardTitle className="text-lg">Turborepo Commands</CardTitle>
               <CardDescription className="text-neutral-400">
                 Monorepo workspace scripts
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
-                <p className="font-mono text-xs text-emerald-400">npm run dev</p>
-                <p className="text-xs text-neutral-400">Run both frontend and backend concurrently</p>
+                <p className="font-mono text-xs text-emerald-400">pnpm dev</p>
+                <p className="text-xs text-neutral-400">Run web and api simultaneously with Turborepo</p>
               </div>
               <div className="pt-2 border-t border-neutral-800">
-                <p className="font-mono text-xs text-emerald-400">npm run dev:frontend</p>
-                <p className="text-xs text-neutral-400">Start Next.js App Router (port 3000)</p>
+                <p className="font-mono text-xs text-emerald-400">pnpm dev:web</p>
+                <p className="text-xs text-neutral-400">Start Next.js App Router only (port 3000)</p>
               </div>
               <div className="pt-2 border-t border-neutral-800">
-                <p className="font-mono text-xs text-emerald-400">npm run dev:backend</p>
-                <p className="text-xs text-neutral-400">Start NestJS API with hot reload (port 4000)</p>
+                <p className="font-mono text-xs text-emerald-400">pnpm dev:api</p>
+                <p className="text-xs text-neutral-400">Start NestJS API with watch mode (port 4000)</p>
               </div>
               <div className="pt-2 border-t border-neutral-800">
-                <p className="font-mono text-xs text-emerald-400">npm run prisma:studio --workspace=backend</p>
-                <p className="text-xs text-neutral-400">Open Prisma Studio to inspect database records</p>
+                <p className="font-mono text-xs text-emerald-400">pnpm build</p>
+                <p className="text-xs text-neutral-400">Build all apps and packages via Turborepo pipeline</p>
+              </div>
+              <div className="pt-2 border-t border-neutral-800">
+                <p className="font-mono text-xs text-emerald-400">pnpm prisma:studio</p>
+                <p className="text-xs text-neutral-400">Open Prisma Studio database browser</p>
               </div>
             </CardContent>
             <CardFooter className="border-t border-neutral-800 pt-4">
               <span className="text-xs text-neutral-400">
-                Schema: <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-300">backend/prisma/schema.prisma</code>
+                Schema: <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-300">apps/api/prisma/schema.prisma</code>
               </span>
             </CardFooter>
           </Card>
