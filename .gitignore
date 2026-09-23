@@ -1,35 +1,42 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 .pnp
 .pnp.js
+
+# Turborepo
+.turbo/
 
 # Testing
 coverage/
 
 # Next.js
-frontend/.next/
-frontend/out/
+.next/
+out/
+apps/web/.next/
+apps/web/out/
 
-# NestJS
-backend/dist/
-
-# Production
-build/
+# NestJS & Build Outputs
 dist/
+build/
+apps/api/dist/
+packages/*/dist/
 
 # Misc
 .DS_Store
 *.pem
 
-# Debug
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Local environment files
+# Environment files
 .env
 .env*.local
-backend/.env
+apps/api/.env
+apps/web/.env.local
 
 # TypeScript
 *.tsbuildinfo
@@ -40,4 +47,3 @@ next-env.d.ts
 .vscode/
 *.swp
 *.swo
-
