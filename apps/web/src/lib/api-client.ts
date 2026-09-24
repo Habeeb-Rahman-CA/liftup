@@ -24,6 +24,7 @@ import type {
   CreateSetLogPayload,
   UpdateSetLogPayload,
   PreviousExercisePerformanceDto,
+  ExerciseHistoryItemDto,
   PaginatedResult,
 } from '@liftup/types';
 
@@ -403,6 +404,16 @@ export const sessionsApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to load previous exercise performance');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getExerciseHistory(exerciseId: string): Promise<ExerciseHistoryItemDto[]> {
+    const res = await fetchWithAuth(`/api/v1/sessions/exercise-history/${exerciseId}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load exercise history records');
     }
     const data = await res.json();
     return data.data || data;

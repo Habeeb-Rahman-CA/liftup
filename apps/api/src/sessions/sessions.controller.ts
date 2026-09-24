@@ -31,6 +31,7 @@ import type {
   WorkoutSessionDto,
   SetLogDto,
   PreviousExercisePerformanceDto,
+  ExerciseHistoryItemDto,
   PaginatedResult,
 } from '@liftup/types';
 
@@ -89,6 +90,17 @@ export class SessionsController {
     @Param('exerciseId') exerciseId: string,
   ): Promise<PreviousExercisePerformanceDto> {
     return this.sessionsService.getPreviousPerformance(userId, exerciseId);
+  }
+
+  @Get('exercise-history/:exerciseId')
+  @ApiOperation({
+    summary: 'Get historical performance records for a specific exercise',
+  })
+  async getExerciseHistory(
+    @CurrentUser('id') userId: string,
+    @Param('exerciseId') exerciseId: string,
+  ): Promise<ExerciseHistoryItemDto[]> {
+    return this.sessionsService.getExerciseHistory(userId, exerciseId);
   }
 
   @Get(':id')

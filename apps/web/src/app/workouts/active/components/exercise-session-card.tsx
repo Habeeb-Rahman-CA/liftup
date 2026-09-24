@@ -11,10 +11,16 @@ import {
   Dumbbell,
   Clock,
   History,
+  TrendingUp,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { sessionsApi } from '@/lib/api-client';
+import { ExerciseHistoryModal } from '@/components/exercises/exercise-history-modal';
 import type {
   ExerciseLogDto,
   SetLogDto,
@@ -47,6 +53,9 @@ export function ExerciseSessionCard({
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [exerciseNote, setExerciseNote] = useState(log.note || '');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showPrevCard, setShowPrevCard] = useState(true);
+  const [isAutofilling, setIsAutofilling] = useState(false);
 
   // Fetch previous performance for progressive overload reference
   useEffect(() => {
@@ -81,19 +90,66 @@ export function ExerciseSessionCard({
     await onUpdateSet(set.id, { type: nextType });
   };
 
-  // Format previous performance for set index
-  const getPreviousForSet = (setIdx: number): string => {
-    if (!prevPerformance || !prevPerformance.sets || !prevPerformance.sets[setIdx]) {
-      return '-';
+  // Autofill all uncompleted sets with previous session weights & reps
+  const handleAutofillAll = async () => {
+    if (!prevPerformance || !prevPerformance.sets?.length || !log.setLogs?.length) return;
+    setIsAutofilling(true);
+    try {
+      const promises = log.setLogs.map(async (set, idx) => {
+        const prevSet = prevPerformance.sets[idx];
+        if (prevSet && (!set.weight || !set.reps)) {
+          const updates: Partial<SetLogDto> = {};
+          if (prevSet.weight !== null && prevSet.weight !== undefined && !set.weight) {
+            updates.weight = prevSet.weight;
+          }
+          if (prevSet.reps !== null && prevSet.reps !== undefined && !set.reps) {
+            updates.reps = prevSet.reps;
+          }
+          if (Object.keys(updates).length > 0) {
+            await onUpdateSet(set.id, updates);
+          }
+        }
+      });
+      await Promise.all(promises);
+    } finally {
+      setIsAutofilling(false);
     }
-    const prev = prevPerformance.sets[setIdx];
-    if (prev.weight !== null && prev.weight !== undefined && prev.reps !== null) {
-      return `${prev.weight}kg × ${prev.reps}`;
+  };
+
+  // Autofill single set from previous reference
+  const handleAutofillSingleSet = async (set: SetLogDto, prevIndex: number) => {
+    if (!prevPerformance || !prevPerformance.sets || !prevPerformance.sets[prevIndex]) return;
+    const prev = prevPerformance.sets[prevIndex];
+    const updates: Partial<SetLogDto> = {};
+    if (prev.weight !== null && prev.weight !== undefined) {
+      updates.weight = prev.weight;
     }
     if (prev.reps !== null && prev.reps !== undefined) {
-      return `${prev.reps} reps`;
+      updates.reps = prev.reps;
     }
-    return '-';
+    if (Object.keys(updates).length > 0) {
+      await onUpdateSet(set.id, updates);
+    }
+  };
+
+  // Format previous performance for set index
+  const getPreviousForSet = (setIdx: number): { text: string; hasData: boolean } => {
+    if (!prevPerformance || !prevPerformance.sets || !prevPerformance.sets[setIdx]) {
+      return { text: '-', hasData: false };
+    }
+    const prev = prevPerformance.sets[setIdx];
+    if (
+      prev.weight !== null &&
+      prev.weight !== undefined &&
+      prev.reps !== null &&
+      prev.reps !== undefined
+    ) {
+      return { text: `${prev.weight}kg × ${prev.reps}`, hasData: true };
+    }
+    if (prev.reps !== null && prev.reps !== undefined) {
+      return { text: `${prev.reps} reps`, hasData: true };
+    }
+    return { text: '-', hasData: false };
   };
 
   // Warmup sets strictly appear at the top, followed by working sets
@@ -115,6 +171,22 @@ export function ExerciseSessionCard({
   const completedSetsCount = log.setLogs?.filter(s => s.completed).length || 0;
   const totalSetsCount = log.setLogs?.length || 0;
 
+  const hasPreviousData = Boolean(
+    prevPerformance && prevPerformance.sets && prevPerformance.sets.length > 0,
+  );
+
+  // Relative time string for last session
+  const getLastSessionTimeAgo = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return '';
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
   return (
     <div className="rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-md overflow-hidden transition-colors">
       {/* Exercise Header */}
@@ -132,12 +204,15 @@ export function ExerciseSessionCard({
               <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-medium">
                 {log.exercise?.category || 'Strength'}
               </span>
-              {prevPerformance?.sets?.length ? (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono font-medium before:content-['•'] before:mr-1 before:text-zinc-600">
+              {hasPreviousData ? (
+                <button
+                  type="button"
+                  onClick={() => setShowHistoryModal(true)}
+                  className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 font-mono font-medium before:content-['•'] before:mr-1 before:text-zinc-600 transition-colors"
+                >
                   <History className="h-3 w-3" />
-                  Prev: {prevPerformance.sets[0]?.weight ?? 0}kg ×{' '}
-                  {prevPerformance.sets[0]?.reps ?? 0}
-                </span>
+                  <span>History</span>
+                </button>
               ) : null}
             </div>
           </div>
@@ -172,6 +247,17 @@ export function ExerciseSessionCard({
                 <button
                   type="button"
                   onClick={() => {
+                    setShowHistoryModal(true);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100 text-left"
+                >
+                  <History className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>View Full History</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     setShowNoteInput(!showNoteInput);
                     setMenuOpen(false);
                   }}
@@ -197,7 +283,84 @@ export function ExerciseSessionCard({
         </div>
       </div>
 
-      {/* Exercise Cue / Note if present */}
+      {/* PHASE 5: LAST PERFORMANCE CARD */}
+      {hasPreviousData && (
+        <div className="bg-zinc-950/70 border-b border-zinc-800/80 px-3.5 py-2.5 sm:px-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-1.5 py-0.5 rounded">
+                LAST SESSION
+              </span>
+              <span className="text-xs text-zinc-300 font-medium truncate">
+                {prevPerformance?.lastSessionName || 'Previous Workout'}
+              </span>
+              {prevPerformance?.lastPerformedAt && (
+                <span className="text-[11px] font-mono text-zinc-500 hidden sm:inline">
+                  • {getLastSessionTimeAgo(prevPerformance.lastPerformedAt)}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleAutofillAll}
+                disabled={isAutofilling}
+                className="flex items-center gap-1 text-[11px] font-mono text-emerald-300 hover:text-emerald-200 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-800/80 px-2 py-0.5 rounded-lg transition-colors"
+                title="Autofill current empty sets with previous weights & reps"
+              >
+                <Sparkles className="h-3 w-3 text-emerald-400" />
+                <span>{isAutofilling ? 'Copying...' : 'Autofill'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPrevCard(!showPrevCard)}
+                className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded"
+                title={showPrevCard ? 'Collapse previous info' : 'Expand previous info'}
+              >
+                {showPrevCard ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {showPrevCard && (
+            <div className="mt-2 space-y-1.5 pt-1.5 border-t border-zinc-800/50 text-xs">
+              {/* Previous Note / Coaching Cue */}
+              {prevPerformance?.previousNote && (
+                <div className="flex items-start gap-1.5 text-zinc-300 bg-zinc-900/90 rounded-lg p-2 border border-zinc-800/80">
+                  <FileText className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <span className="italic text-zinc-300">"{prevPerformance.previousNote}"</span>
+                </div>
+              )}
+
+              {/* Best Set & Est 1RM pill */}
+              {prevPerformance?.bestSet && (
+                <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono text-zinc-400">
+                  <span className="flex items-center gap-1 text-amber-300">
+                    <TrendingUp className="h-3 w-3 text-amber-400" />
+                    Best: {prevPerformance.bestSet.weight}kg × {prevPerformance.bestSet.reps}
+                  </span>
+                  {prevPerformance.estimated1RM ? (
+                    <span className="text-zinc-400 before:content-['•'] before:mr-1 before:text-zinc-600">
+                      Est. 1RM:{' '}
+                      <strong className="text-emerald-300 font-bold">
+                        {prevPerformance.estimated1RM}kg
+                      </strong>
+                    </span>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Exercise Cue / Note input */}
       {(showNoteInput || log.note) && (
         <div className="px-3.5 sm:px-4 py-2 bg-zinc-950/40 border-b border-zinc-800/60">
           <Input
@@ -234,7 +397,7 @@ export function ExerciseSessionCard({
               displayBadge = `${workingCounter}`;
             }
 
-            const previousLabel = getPreviousForSet(setIdx);
+            const previousInfo = getPreviousForSet(setIdx);
 
             return (
               <div
@@ -265,9 +428,20 @@ export function ExerciseSessionCard({
                   </button>
                 </div>
 
-                {/* Previous Reference */}
-                <div className="col-span-3 text-center font-mono text-[11px] text-zinc-400 truncate">
-                  {previousLabel}
+                {/* Previous Reference (Clickable to autofill this set) */}
+                <div className="col-span-3 flex justify-center">
+                  {previousInfo.hasData ? (
+                    <button
+                      type="button"
+                      onClick={() => handleAutofillSingleSet(set, setIdx)}
+                      className="font-mono text-[11px] text-zinc-400 hover:text-emerald-300 hover:bg-zinc-900 px-1.5 py-0.5 rounded transition-colors truncate max-w-full"
+                      title="Click to copy into current set"
+                    >
+                      {previousInfo.text}
+                    </button>
+                  ) : (
+                    <span className="font-mono text-[11px] text-zinc-600">-</span>
+                  )}
                 </div>
 
                 {/* Weight Input (kg/lbs) */}
@@ -377,6 +551,15 @@ export function ExerciseSessionCard({
           )}
         </div>
       </div>
+
+      {/* Full Exercise History Modal */}
+      <ExerciseHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        exerciseId={log.exerciseId}
+        exerciseName={log.exercise?.name}
+        category={log.exercise?.category}
+      />
     </div>
   );
 }

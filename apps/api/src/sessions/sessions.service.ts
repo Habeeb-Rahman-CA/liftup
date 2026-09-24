@@ -17,6 +17,7 @@ import type {
   ExerciseLogDto,
   SetLogDto,
   PreviousExercisePerformanceDto,
+  ExerciseHistoryItemDto,
   PaginatedResult,
 } from '@liftup/types';
 
@@ -515,7 +516,11 @@ export class SessionsService {
     userId: string,
     exerciseId: string,
   ): Promise<PreviousExercisePerformanceDto> {
-    const lastSession = await this.prisma.workoutSession.findFirst({
+    const exercise = await this.prisma.exercise.findUnique({
+      where: { id: exerciseId },
+    });
+
+    const recentSessions = await this.prisma.workoutSession.findMany({
       where: {
         userId,
         status: WorkoutSessionStatus.COMPLETED,
@@ -524,6 +529,7 @@ export class SessionsService {
         },
       },
       orderBy: { startedAt: 'desc' },
+      take: 5,
       include: {
         exerciseLogs: {
           where: { exerciseId },
@@ -536,26 +542,155 @@ export class SessionsService {
       },
     });
 
-    if (!lastSession || !lastSession.exerciseLogs.length) {
+    if (!recentSessions.length) {
       return {
         exerciseId,
+        exerciseName: exercise?.name,
         lastPerformedAt: null,
+        lastSessionName: null,
+        previousNote: null,
+        estimated1RM: null,
+        bestSet: null,
         sets: [],
+        historySnippet: [],
       };
     }
 
+    const lastSession = recentSessions[0];
     const log = lastSession.exerciseLogs[0];
+
+    const sets = (log?.setLogs || []).map((s) => ({
+      type: s.type as any,
+      setNumber: s.setNumber,
+      weight:
+        s.weight !== null && s.weight !== undefined ? Number(s.weight) : null,
+      reps: s.reps ?? null,
+      rpe: s.rpe !== null && s.rpe !== undefined ? Number(s.rpe) : null,
+      completed: s.completed,
+      note: s.note || null,
+    }));
+
+    // Calculate Estimated 1RM & Best Set from completed sets
+    let best1RM = 0;
+    let bestSetObj: {
+      weight: number;
+      reps: number;
+      estimated1RM: number;
+    } | null = null;
+
+    for (const s of sets) {
+      if (s.completed && s.weight && s.reps && s.weight > 0 && s.reps > 0) {
+        const e1rm = Math.round(s.weight * (1 + s.reps / 30));
+        if (e1rm > best1RM) {
+          best1RM = e1rm;
+          bestSetObj = {
+            weight: s.weight,
+            reps: s.reps,
+            estimated1RM: e1rm,
+          };
+        }
+      }
+    }
+
+    const historySnippet = recentSessions.map((sess) => {
+      const sessLog = sess.exerciseLogs[0];
+      const validSets = sessLog?.setLogs?.filter((s) => s.completed) || [];
+      const weights = validSets.map((s) => (s.weight ? Number(s.weight) : 0));
+      const maxWeight = weights.length ? Math.max(...weights) : null;
+      const totalVolume = validSets.reduce(
+        (acc, s) => acc + (s.weight ? Number(s.weight) : 0) * (s.reps || 0),
+        0,
+      );
+
+      return {
+        date: sess.startedAt
+          ? new Date(sess.startedAt).toISOString()
+          : new Date(sess.createdAt).toISOString(),
+        sessionName: sess.name || 'Workout Session',
+        maxWeight: maxWeight || null,
+        totalVolume: totalVolume > 0 ? totalVolume : null,
+        completedSetsCount: validSets.length,
+      };
+    });
+
     return {
       exerciseId,
-      lastPerformedAt: lastSession.startedAt?.toISOString() || null,
-      sets: log.setLogs.map((s) => ({
+      exerciseName: exercise?.name,
+      lastPerformedAt: lastSession.startedAt
+        ? new Date(lastSession.startedAt).toISOString()
+        : null,
+      lastSessionName: lastSession.name || null,
+      previousNote: log?.note || null,
+      estimated1RM: best1RM > 0 ? best1RM : null,
+      bestSet: bestSetObj,
+      sets,
+      historySnippet,
+    };
+  }
+
+  /**
+   * Get historical performance logs for a single exercise across all completed workouts
+   */
+  async getExerciseHistory(
+    userId: string,
+    exerciseId: string,
+  ): Promise<ExerciseHistoryItemDto[]> {
+    const sessions = await this.prisma.workoutSession.findMany({
+      where: {
+        userId,
+        status: WorkoutSessionStatus.COMPLETED,
+        exerciseLogs: {
+          some: { exerciseId },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+      take: 50,
+      include: {
+        exerciseLogs: {
+          where: { exerciseId },
+          include: {
+            setLogs: {
+              orderBy: { setNumber: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    return sessions.map((sess) => {
+      const log = sess.exerciseLogs[0];
+      const sets = (log?.setLogs || []).map((s) => ({
         type: s.type as any,
         setNumber: s.setNumber,
-        weight: s.weight,
-        reps: s.reps,
+        weight:
+          s.weight !== null && s.weight !== undefined ? Number(s.weight) : null,
+        reps: s.reps ?? null,
+        rpe: s.rpe !== null && s.rpe !== undefined ? Number(s.rpe) : null,
         completed: s.completed,
-      })),
-    };
+        note: s.note || null,
+      }));
+
+      const completedSets = sets.filter((s) => s.completed);
+      const weights = completedSets.map((s) => s.weight || 0);
+      const maxWeight = weights.length ? Math.max(...weights) : null;
+      const totalVolume = completedSets.reduce(
+        (acc, s) => acc + (s.weight || 0) * (s.reps || 0),
+        0,
+      );
+
+      return {
+        sessionId: sess.id,
+        sessionName: sess.name || 'Workout Session',
+        performedAt: sess.startedAt
+          ? new Date(sess.startedAt).toISOString()
+          : new Date(sess.createdAt).toISOString(),
+        durationMinutes: sess.durationMinutes ?? null,
+        exerciseNote: log?.note || null,
+        maxWeight: maxWeight || null,
+        totalVolume: totalVolume > 0 ? totalVolume : null,
+        sets,
+      };
+    });
   }
 
   // ---------------------------------------------------------------------------

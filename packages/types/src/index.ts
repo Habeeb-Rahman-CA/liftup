@@ -316,13 +316,50 @@ export interface UpdateSetLogPayload {
 
 export interface PreviousExercisePerformanceDto {
   exerciseId: string;
+  exerciseName?: string;
   lastPerformedAt?: string | null;
+  lastSessionName?: string | null;
+  previousNote?: string | null;
+  estimated1RM?: number | null;
+  bestSet?: {
+    weight: number;
+    reps: number;
+    estimated1RM?: number;
+  } | null;
   sets: {
     type: SetType;
     setNumber: number;
     weight?: number | null;
     reps?: number | null;
+    rpe?: number | null;
     completed: boolean;
+    note?: string | null;
+  }[];
+  historySnippet?: {
+    date: string;
+    sessionName: string;
+    maxWeight?: number | null;
+    totalVolume?: number | null;
+    completedSetsCount: number;
+  }[];
+}
+
+export interface ExerciseHistoryItemDto {
+  sessionId: string;
+  sessionName: string;
+  performedAt: string;
+  durationMinutes?: number | null;
+  exerciseNote?: string | null;
+  maxWeight?: number | null;
+  totalVolume?: number | null;
+  sets: {
+    type: SetType;
+    setNumber: number;
+    weight?: number | null;
+    reps?: number | null;
+    rpe?: number | null;
+    completed: boolean;
+    note?: string | null;
   }[];
 }
 

@@ -25,7 +25,9 @@ import {
   ChevronDown,
   FileText,
   Layers,
+  History,
 } from 'lucide-react';
+import { ExerciseHistoryModal } from '@/components/exercises/exercise-history-modal';
 import type { ExerciseDto, CreateExercisePayload, UpdateExercisePayload } from '@liftup/types';
 
 export default function ExercisesPage() {
@@ -49,6 +51,7 @@ export default function ExercisesPage() {
   const [editingExercise, setEditingExercise] = useState<ExerciseDto | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExerciseDto | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [historyModalExercise, setHistoryModalExercise] = useState<ExerciseDto | null>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -433,6 +436,17 @@ export default function ExercisesPage() {
                       )}
                     </Button>
 
+                    {/* History & PRs */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setHistoryModalExercise(exercise)}
+                      className="h-8 px-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 rounded-lg text-xs"
+                      title="View Performance History & PRs"
+                    >
+                      <History className="h-3.5 w-3.5" />
+                    </Button>
+
                     {/* Edit */}
                     <Button
                       variant="ghost"
@@ -583,6 +597,15 @@ export default function ExercisesPage() {
         onClose={() => {
           if (!isDeleting) setDeleteTarget(null);
         }}
+      />
+
+      {/* Exercise Progression / History Modal */}
+      <ExerciseHistoryModal
+        isOpen={Boolean(historyModalExercise)}
+        onClose={() => setHistoryModalExercise(null)}
+        exerciseId={historyModalExercise?.id || null}
+        exerciseName={historyModalExercise?.name}
+        category={historyModalExercise?.category}
       />
 
       {/* Floating Action Button (FAB) at Bottom Right */}
