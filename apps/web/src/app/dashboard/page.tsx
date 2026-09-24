@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useActiveWorkout } from '@/context/active-workout-context';
-import { schedulesApi, sessionsApi } from '@/lib/api-client';
+import { schedulesApi, sessionsApi, progressionApi } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SkipWorkoutModal } from '@/components/workouts/skip-workout-modal';
@@ -19,8 +19,13 @@ import {
   Play,
   AlertCircle,
   FileText,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  Loader2,
 } from 'lucide-react';
-import type { TodayWorkoutDto } from '@liftup/types';
+import type { TodayWorkoutDto, ProgressOverviewDto } from '@liftup/types';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -29,14 +34,19 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const { activeSession, startWorkout } = useActiveWorkout();
   const [todayData, setTodayData] = useState<TodayWorkoutDto | null>(null);
+  const [progressionOverview, setProgressionOverview] = useState<ProgressOverviewDto | null>(null);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [restModalOpen, setRestModalOpen] = useState(false);
 
   const refreshTodayData = async () => {
     try {
-      const data = await schedulesApi.getTodayWorkout();
+      const [data, progressData] = await Promise.all([
+        schedulesApi.getTodayWorkout(),
+        progressionApi.getOverview().catch(() => null),
+      ]);
       setTodayData(data);
+      if (progressData) setProgressionOverview(progressData);
     } catch (err) {
       console.error('Failed to reload today workout:', err);
     }
@@ -71,13 +81,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      schedulesApi
-        .getTodayWorkout()
-        .then(data => {
-          setTodayData(data);
-          setLoadingSchedule(false);
+      Promise.all([
+        schedulesApi.getTodayWorkout().catch(() => null),
+        progressionApi.getOverview().catch(() => null),
+      ])
+        .then(([today, progress]) => {
+          if (today) setTodayData(today);
+          if (progress) setProgressionOverview(progress);
         })
-        .catch(() => {
+        .finally(() => {
           setLoadingSchedule(false);
         });
     }
@@ -108,12 +120,12 @@ export default function DashboardPage() {
     };
   }, [todayData?.completedToday]);
 
-  if (authLoading || !user) {
+  if (authLoading || (loadingSchedule && !todayData) || !user) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 bg-zinc-950">
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[65vh] p-8">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-6 w-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-          <p className="text-xs text-zinc-500">Loading session...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          <p className="text-xs font-mono text-zinc-400">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -135,10 +147,9 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
         {/* Today's Workout Spotlight (2 cols on desktop) */}
         <div className="md:col-span-2 rounded-2xl bg-gradient-to-br from-emerald-950/50 via-zinc-900 to-zinc-950 border border-emerald-900/60 p-4 sm:p-5 relative overflow-hidden">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-emerald-400 truncate">
                 {todayData?.completedToday
                   ? todayData.completedToday.status === 'SKIPPED'
                     ? "Today's Status: Skipped"
@@ -148,7 +159,7 @@ export default function DashboardPage() {
                   : "Today's Workout Spotlight"}
               </span>
             </div>
-            <span className="text-[11px] text-zinc-400 font-mono">
+            <span className="text-[9px] sm:text-[11px] text-zinc-400 font-mono shrink-0 whitespace-nowrap">
               {todayData?.todayDateFormatted || 'Today'}
             </span>
           </div>
@@ -254,14 +265,14 @@ export default function DashboardPage() {
               /* COMPLETED WORKOUT DETAILED VIEW */
               <div className="space-y-3.5 animate-in fade-in duration-200">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-xl font-bold text-zinc-100">
                         {todayData.completedToday.name || "Today's Workout"}
                       </h2>
-                      <Badge className="bg-emerald-950 text-emerald-300 border-emerald-700 text-[10px] font-medium gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <Badge className="bg-emerald-950 text-emerald-300 border-emerald-700 text-[9px] sm:text-[10px] font-medium gap-1 py-0.5 px-1.5 shrink-0">
+                        <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         Completed Today
                       </Badge>
                     </div>
@@ -538,20 +549,135 @@ export default function DashboardPage() {
 
           {todayData?.upcoming && (
             <div className="pt-3 border-t border-zinc-800 mt-3">
-              <Link href="/workouts" className="block">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-xs h-7 rounded-lg justify-between px-2"
+              <Link
+                href="/workouts"
+                className="group flex items-center justify-between text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+              >
+                <span className="font-medium">Open 7-Day Schedule</span>
+                <span
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-400 group-hover:text-emerald-400 group-hover:border-emerald-800/80 transition-colors"
+                  title="Open 7-Day Schedule"
+                  aria-label="Open 7-Day Schedule"
                 >
-                  <span>Open 7-Day Schedule</span>
-                  <ArrowRight className="h-3 w-3" />
-                </Button>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
               </Link>
             </div>
           )}
         </div>
       </div>
+
+      {/* Small Progression Summary */}
+      {progressionOverview && (
+        <div className="rounded-2xl bg-zinc-900 border border-zinc-800 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-400" />
+              <h3 className="font-bold text-xs sm:text-sm text-zinc-100 uppercase tracking-wider font-mono">
+                Progression Summary
+              </h3>
+            </div>
+            <Link
+              href="/progress"
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-800/80 transition-colors"
+              title="View Progression & Insights"
+              aria-label="View Progression & Insights"
+            >
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-center">
+              <span className="text-[10px] font-mono uppercase text-zinc-500 block mb-0.5">
+                Week
+              </span>
+              <span className="text-base sm:text-lg font-bold font-mono text-zinc-100">
+                {progressionOverview.consistency?.workoutsThisWeek || 0}{' '}
+                <span className="text-[10px] text-zinc-500 font-normal">done</span>
+              </span>
+            </div>
+
+            <div className="p-2.5 sm:p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-center">
+              <span className="text-[10px] font-mono uppercase text-zinc-500 block mb-0.5">
+                Month
+              </span>
+              <span className="text-base sm:text-lg font-bold font-mono text-emerald-400">
+                {progressionOverview.consistency?.workoutsThisMonth || 0}{' '}
+                <span className="text-[10px] text-zinc-500 font-normal">done</span>
+              </span>
+            </div>
+
+            <div className="p-2.5 sm:p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-center">
+              <span className="text-[10px] font-mono uppercase text-zinc-500 block mb-0.5">
+                Total
+              </span>
+              <span className="text-base sm:text-lg font-bold font-mono text-zinc-200">
+                {progressionOverview.consistency?.totalCompletedWorkouts || 0}
+              </span>
+            </div>
+          </div>
+
+          {/* Recent Movement Highlights */}
+          {progressionOverview.recentlyTrainedExercises &&
+            progressionOverview.recentlyTrainedExercises.length > 0 && (
+              <div className="pt-2 border-t border-zinc-800/80 space-y-1.5">
+                <span className="text-[10px] font-mono uppercase text-zinc-500 font-semibold block">
+                  Recent Strength Highlights
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {progressionOverview.recentlyTrainedExercises.slice(0, 2).map(ex => {
+                    const lastSet =
+                      ex.lastSession?.sets?.find(s => s.completed) || ex.lastSession?.sets?.[0];
+                    return (
+                      <div
+                        key={ex.exerciseId}
+                        className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-zinc-200 truncate">
+                            {ex.exerciseName}
+                          </p>
+                          <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                            Peak:{' '}
+                            <strong className="text-emerald-400">{ex.highestWeight || 0} kg</strong>
+                            {lastSet?.weight
+                              ? ` • Last: ${lastSet.weight}kg × ${lastSet.reps || 0}r`
+                              : ''}
+                          </p>
+                        </div>
+                        {ex.overallIndicator === 'UP' && (
+                          <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-1.5 py-0.5 rounded-md">
+                            <ArrowUpRight className="h-3 w-3" />
+                            <span>UP</span>
+                          </span>
+                        )}
+                        {ex.overallIndicator === 'DOWN' && (
+                          <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-mono font-bold text-rose-400 bg-rose-950/80 border border-rose-800/80 px-1.5 py-0.5 rounded-md">
+                            <ArrowDownRight className="h-3 w-3" />
+                            <span>DOWN</span>
+                          </span>
+                        )}
+                        {ex.overallIndicator === 'SAME' && (
+                          <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-mono font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded-md">
+                            <Minus className="h-3 w-3" />
+                            SAME
+                          </span>
+                        )}
+                        {ex.overallIndicator === 'FIRST_TIME' && (
+                          <span className="shrink-0 text-[9px] font-mono font-semibold uppercase text-blue-400 bg-blue-950/60 border border-blue-800/60 px-1.5 py-0.5 rounded-md">
+                            NEW
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+        </div>
+      )}
 
       {/* Skip Workout Modal */}
       <SkipWorkoutModal
