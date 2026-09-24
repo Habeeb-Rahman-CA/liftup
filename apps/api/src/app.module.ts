@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
 import { SchedulesModule } from './schedules/schedules.module.js';
 import { SessionsModule } from './sessions/sessions.module.js';
+import { ProgressionModule } from './progression/progression.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SessionsModule } from './sessions/sessions.module.js';
     ExercisesModule,
     SchedulesModule,
     SessionsModule,
+    ProgressionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

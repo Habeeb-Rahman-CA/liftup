@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { LayoutDashboard, Dumbbell, User, Calendar, History } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Calendar, History, TrendingUp } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const { user, loading } = useAuth();
@@ -59,6 +59,16 @@ export const BottomNav: React.FC = () => {
         >
           <History className="h-5 w-5" />
           <span className="text-[10px] font-medium">History</span>
+        </Link>
+
+        <Link
+          href="/progress"
+          className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
+            pathname === '/progress' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <TrendingUp className="h-5 w-5" />
+          <span className="text-[10px] font-medium">Progress</span>
         </Link>
       </div>
     </nav>

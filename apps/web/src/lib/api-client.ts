@@ -25,6 +25,8 @@ import type {
   UpdateSetLogPayload,
   PreviousExercisePerformanceDto,
   ExerciseHistoryItemDto,
+  ExerciseProgressionDto,
+  ProgressOverviewDto,
   PaginatedResult,
 } from '@liftup/types';
 
@@ -518,6 +520,30 @@ export const sessionsApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to remove set');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+};
+
+export const progressionApi = {
+  async getOverview(): Promise<ProgressOverviewDto> {
+    const res = await fetchWithAuth('/api/v1/progression/overview', { cache: 'no-store' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load progress overview');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getExerciseProgression(exerciseId: string): Promise<ExerciseProgressionDto> {
+    const res = await fetchWithAuth(`/api/v1/progression/exercise/${exerciseId}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load exercise progression');
     }
     const data = await res.json();
     return data.data || data;

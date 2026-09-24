@@ -99,7 +99,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-20 md:pb-8">
+    <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20">
       {/* Top Banner / Welcome */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
         <div className="flex items-center gap-3 sm:gap-4">

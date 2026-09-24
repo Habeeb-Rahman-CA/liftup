@@ -424,6 +424,7 @@ export function ExerciseSessionCard({
                 <div className="col-span-3">
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.5"
                     min="0"
                     placeholder="0"
@@ -434,7 +435,7 @@ export function ExerciseSessionCard({
                         onUpdateSet(set.id, { weight: val });
                       }
                     }}
-                    className={`w-full h-8 text-center text-xs font-mono font-bold rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors ${
+                    className={`w-full h-8 sm:h-9 text-center text-xs sm:text-sm font-mono font-bold rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors touch-manipulation ${
                       set.completed
                         ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-600'
@@ -446,6 +447,7 @@ export function ExerciseSessionCard({
                 <div className="col-span-3">
                   <input
                     type="number"
+                    inputMode="numeric"
                     step="1"
                     min="0"
                     placeholder="0"
@@ -456,7 +458,7 @@ export function ExerciseSessionCard({
                         onUpdateSet(set.id, { reps: val });
                       }
                     }}
-                    className={`w-full h-8 text-center text-xs font-mono font-bold rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors ${
+                    className={`w-full h-8 sm:h-9 text-center text-xs sm:text-sm font-mono font-bold rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors touch-manipulation ${
                       set.completed
                         ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-600'
@@ -469,7 +471,7 @@ export function ExerciseSessionCard({
                   <button
                     type="button"
                     onClick={() => handleToggleComplete(set)}
-                    className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all ${
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center transition-all touch-manipulation ${
                       set.completed
                         ? 'bg-emerald-900 text-emerald-100 border border-emerald-600 shadow-md shadow-emerald-950/60 scale-105'
                         : 'bg-zinc-800 text-zinc-500 border border-zinc-700 hover:text-zinc-200 hover:border-zinc-600'

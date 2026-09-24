@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Dumbbell, Calendar, History } from 'lucide-react';
+import { LayoutDashboard, LogOut, Dumbbell, Calendar, History, TrendingUp } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout, loading } = useAuth();
@@ -91,6 +91,21 @@ export const Navbar: React.FC = () => {
             >
               <History className="h-3.5 w-3.5 mr-1.5" />
               History
+            </Button>
+          </Link>
+
+          <Link href="/progress" className="hidden sm:inline-flex">
+            <Button
+              variant={pathname === '/progress' ? 'default' : 'outline'}
+              size="sm"
+              className={
+                pathname === '/progress'
+                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
+              }
+            >
+              <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
+              Progress
             </Button>
           </Link>
           <div className="flex items-center gap-1.5 px-1.5 sm:px-2 sm:border-l sm:border-zinc-800 text-xs text-zinc-400">

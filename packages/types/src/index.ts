@@ -364,6 +364,108 @@ export interface ExerciseHistoryItemDto {
 }
 
 // -----------------------------------------------------------------------------
+// PROGRESSION & PROGRESS MODULE TYPES (PHASE 6)
+// -----------------------------------------------------------------------------
+export type ProgressionIndicator = 'UP' | 'SAME' | 'DOWN' | 'FIRST_TIME';
+
+export interface ExerciseProgressionCheckpointDto {
+  date: string;
+  sessionName: string;
+  topWeight: number | null;
+  topReps: number | null;
+  weightDelta?: number | null;
+  repDelta?: number | null;
+  indicator: ProgressionIndicator;
+  note?: string | null;
+  sets: {
+    type: SetType;
+    setNumber: number;
+    weight?: number | null;
+    reps?: number | null;
+    completed: boolean;
+  }[];
+}
+
+export interface ExerciseProgressionDto {
+  exerciseId: string;
+  exerciseName: string;
+  category: string;
+  lastSession: {
+    performedAt: string;
+    sessionName: string;
+    sets: {
+      type: SetType;
+      setNumber: number;
+      weight?: number | null;
+      reps?: number | null;
+      completed: boolean;
+    }[];
+    note?: string | null;
+  } | null;
+  highestWeight: number | null;
+  highestWeightReps?: number | null;
+  highestReps: number | null;
+  previousNote: string | null;
+  todayReference: {
+    headline: string;
+    suggestion: string;
+    targetSets: number;
+    targetRepsMin: number;
+    targetRepsMax: number;
+    recommendedWeight?: number | null;
+  };
+  overallIndicator: ProgressionIndicator;
+  recentCheckpoints: ExerciseProgressionCheckpointDto[];
+}
+
+export interface WorkoutConsistencyDto {
+  workoutsThisWeek: number;
+  workoutsThisMonth: number;
+  totalCompletedWorkouts: number;
+  currentStreakWeeks: number;
+  weeklyHistory: {
+    weekLabel: string;
+    completedCount: number;
+    daysActive: number[];
+  }[];
+}
+
+export interface StrengthHistoryDto {
+  totalVolumeAllTime: number;
+  topProgressedExercises: {
+    exerciseId: string;
+    exerciseName: string;
+    category: string;
+    lastWeight: number | null;
+    lastReps: number | null;
+    indicator: ProgressionIndicator;
+    weightGain: number;
+  }[];
+}
+
+export interface BodyWeightEntryDto {
+  id: string;
+  date: string;
+  weight: number;
+  unit: 'kg' | 'lbs';
+  note?: string | null;
+}
+
+export interface BodyWeightProgressDto {
+  latestWeight: number | null;
+  weightUnit: 'kg' | 'lbs';
+  lastLoggedAt: string | null;
+  entries: BodyWeightEntryDto[];
+}
+
+export interface ProgressOverviewDto {
+  consistency: WorkoutConsistencyDto;
+  strength: StrengthHistoryDto;
+  bodyWeight: BodyWeightProgressDto;
+  recentlyTrainedExercises: ExerciseProgressionDto[];
+}
+
+// -----------------------------------------------------------------------------
 // PAGINATION TYPES
 // -----------------------------------------------------------------------------
 export interface PaginationParams {

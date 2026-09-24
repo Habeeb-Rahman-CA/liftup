@@ -259,7 +259,7 @@ export default function ActiveWorkoutPage() {
     ) || 0;
 
   return (
-    <main className="max-w-2xl mx-auto w-full px-3.5 sm:px-6 py-4 pb-28 space-y-4">
+    <main className="max-w-2xl mx-auto w-full px-3.5 sm:px-6 py-4 pb-36 space-y-4">
       {/* --------------------------------------------------------------------- */}
       {/* STICKY TOP APP BAR: Session Name, Live Timer, Finish & Discard CTA    */}
       {/* --------------------------------------------------------------------- */}
