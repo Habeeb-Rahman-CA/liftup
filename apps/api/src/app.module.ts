@@ -9,6 +9,7 @@ import { HealthModule } from './health/health.module.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env.local', '.env', '../../.env.local', '../../.env'],
     }),
     PrismaModule,
     HealthModule,

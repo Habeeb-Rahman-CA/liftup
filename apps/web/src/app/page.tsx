@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import type { HealthStatus } from "@liftup/types";
+import { useEffect, useState } from 'react';
+import type { HealthStatus } from '@liftup/types';
 import {
   Card,
   CardHeader,
@@ -9,9 +9,9 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export default function Home() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
@@ -22,7 +22,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/health");
+      const res = await fetch('/api/v1/health');
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
@@ -41,7 +41,7 @@ export default function Home() {
 
     async function loadInitialHealth() {
       try {
-        const res = await fetch("/api/health");
+        const res = await fetch('/api/v1/health');
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
@@ -76,7 +76,10 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold tracking-tight">Liftup Monorepo</h1>
-              <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+              <Badge
+                variant="outline"
+                className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+              >
                 pnpm + Turborepo
               </Badge>
             </div>
@@ -92,7 +95,7 @@ export default function Home() {
               disabled={loading}
               className="border-neutral-700 bg-neutral-900 hover:bg-neutral-800 text-neutral-200"
             >
-              {loading ? "Checking..." : "Refresh Health"}
+              {loading ? 'Checking...' : 'Refresh Health'}
             </Button>
           </div>
         </div>
@@ -128,7 +131,9 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold">API (NestJS)</CardTitle>
                 {loading ? (
-                  <Badge variant="outline" className="border-neutral-700 text-neutral-400">Checking...</Badge>
+                  <Badge variant="outline" className="border-neutral-700 text-neutral-400">
+                    Checking...
+                  </Badge>
                 ) : health ? (
                   <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     Connected
@@ -146,9 +151,13 @@ export default function Home() {
                 Port: <span className="font-mono text-neutral-200">4000</span>
               </p>
               <p className="text-xs text-neutral-400 mt-1">
-                Status:{" "}
+                Status:{' '}
                 <span className="font-mono text-neutral-200">
-                  {health ? health.service || "Online" : error ? "Not reachable (run pnpm dev)" : "Checking..."}
+                  {health
+                    ? health.service || 'Online'
+                    : error
+                      ? 'Not reachable (run pnpm dev)'
+                      : 'Checking...'}
                 </span>
               </p>
             </CardContent>
@@ -160,13 +169,18 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold">Neon DB (Postgres)</CardTitle>
                 {loading ? (
-                  <Badge variant="outline" className="border-neutral-700 text-neutral-400">Checking...</Badge>
-                ) : health?.database?.status === "connected" ? (
+                  <Badge variant="outline" className="border-neutral-700 text-neutral-400">
+                    Checking...
+                  </Badge>
+                ) : health?.database?.status === 'connected' ? (
                   <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     Connected
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Badge
+                    variant="secondary"
+                    className="bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                  >
                     Pending URL
                   </Badge>
                 )}
@@ -177,14 +191,15 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-neutral-400">
-                Status:{" "}
+                Status:{' '}
                 <span className="font-mono text-neutral-200">
-                  {health?.database?.status ?? "Configure apps/api/.env"}
+                  {health?.database?.status ?? 'Configure apps/api/.env'}
                 </span>
               </p>
               {health?.database?.latencyMs !== undefined && (
                 <p className="text-xs text-neutral-400 mt-1">
-                  Latency: <span className="font-mono text-neutral-200">{health.database.latencyMs}ms</span>
+                  Latency:{' '}
+                  <span className="font-mono text-neutral-200">{health.database.latencyMs}ms</span>
                 </p>
               )}
             </CardContent>
@@ -202,7 +217,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-neutral-300">
               <p>
-                1. Open or create a database on{" "}
+                1. Open or create a database on{' '}
                 <a
                   href="https://neon.tech"
                   target="_blank"
@@ -213,9 +228,15 @@ export default function Home() {
                 </a>
                 .
               </p>
-              <p>2. Edit <code className="bg-neutral-800 text-emerald-400 px-1.5 py-0.5 rounded text-xs">apps/api/.env</code>:</p>
+              <p>
+                2. Edit{' '}
+                <code className="bg-neutral-800 text-emerald-400 px-1.5 py-0.5 rounded text-xs">
+                  apps/api/.env
+                </code>
+                :
+              </p>
               <pre className="bg-neutral-950 p-3 rounded-lg text-xs font-mono text-neutral-300 border border-neutral-800">
-{`# Pooled URL for queries
+                {`# Pooled URL for queries
 DATABASE_URL="postgresql://user:pass@ep-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
 # Direct URL for migrations
@@ -223,7 +244,7 @@ DIRECT_URL="postgresql://user:pass@ep.us-east-2.aws.neon.tech/neondb?sslmode=req
               </pre>
               <p>3. Push your Prisma schema to Neon:</p>
               <pre className="bg-neutral-950 p-2.5 rounded text-xs font-mono text-neutral-300 border border-neutral-800">
-pnpm prisma:push
+                pnpm prisma:push
               </pre>
             </CardContent>
           </Card>
@@ -238,19 +259,27 @@ pnpm prisma:push
             <CardContent className="space-y-3 text-sm">
               <div>
                 <p className="font-mono text-xs text-emerald-400">pnpm dev</p>
-                <p className="text-xs text-neutral-400">Run web and api simultaneously with Turborepo</p>
+                <p className="text-xs text-neutral-400">
+                  Run web and api simultaneously with Turborepo
+                </p>
               </div>
               <div className="pt-2 border-t border-neutral-800">
                 <p className="font-mono text-xs text-emerald-400">pnpm dev:web</p>
-                <p className="text-xs text-neutral-400">Start Next.js App Router only (port 3000)</p>
+                <p className="text-xs text-neutral-400">
+                  Start Next.js App Router only (port 3000)
+                </p>
               </div>
               <div className="pt-2 border-t border-neutral-800">
                 <p className="font-mono text-xs text-emerald-400">pnpm dev:api</p>
-                <p className="text-xs text-neutral-400">Start NestJS API with watch mode (port 4000)</p>
+                <p className="text-xs text-neutral-400">
+                  Start NestJS API with watch mode (port 4000)
+                </p>
               </div>
               <div className="pt-2 border-t border-neutral-800">
                 <p className="font-mono text-xs text-emerald-400">pnpm build</p>
-                <p className="text-xs text-neutral-400">Build all apps and packages via Turborepo pipeline</p>
+                <p className="text-xs text-neutral-400">
+                  Build all apps and packages via Turborepo pipeline
+                </p>
               </div>
               <div className="pt-2 border-t border-neutral-800">
                 <p className="font-mono text-xs text-emerald-400">pnpm prisma:studio</p>
@@ -259,7 +288,10 @@ pnpm prisma:push
             </CardContent>
             <CardFooter className="border-t border-neutral-800 pt-4">
               <span className="text-xs text-neutral-400">
-                Schema: <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-300">apps/api/prisma/schema.prisma</code>
+                Schema:{' '}
+                <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-300">
+                  apps/api/prisma/schema.prisma
+                </code>
               </span>
             </CardFooter>
           </Card>

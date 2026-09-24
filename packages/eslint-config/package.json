@@ -2,7 +2,13 @@
   "name": "@liftup/eslint-config",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "base.js",
+  "exports": {
+    ".": "./base.js",
+    "./next": "./next.js",
+    "./nest": "./nest.js"
+  },
   "files": [
     "base.js",
     "next.js",

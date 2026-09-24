@@ -14,15 +14,26 @@
     "build:web": "turbo run build --filter=@liftup/web",
     "build:api": "turbo run build --filter=@liftup/api",
     "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "prisma:generate": "pnpm --filter=@liftup/api prisma:generate",
     "prisma:push": "pnpm --filter=@liftup/api prisma:push",
     "prisma:migrate": "pnpm --filter=@liftup/api prisma:migrate",
     "prisma:studio": "pnpm --filter=@liftup/api prisma:studio",
+    "prepare": "husky",
     "clean": "turbo run clean"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md}": [
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.4.2",
     "turbo": "^2.4.4"
   }
 }

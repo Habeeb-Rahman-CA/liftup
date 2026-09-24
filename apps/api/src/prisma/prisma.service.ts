@@ -1,8 +1,16 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit() {
@@ -21,7 +29,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('Disconnected from Neon PostgreSQL database.');
   }
 
-  async isHealthy(): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+  async isHealthy(): Promise<{
+    ok: boolean;
+    latencyMs?: number;
+    error?: string;
+  }> {
     const start = Date.now();
     try {
       await this.$queryRaw`SELECT 1`;
@@ -31,4 +43,3 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
   }
 }
-

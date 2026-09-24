@@ -7,4 +7,3 @@ import { PrismaService } from './prisma.service.js';
   exports: [PrismaService],
 })
 export class PrismaModule {}
-
