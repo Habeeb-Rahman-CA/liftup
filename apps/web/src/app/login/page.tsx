@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, Mail, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, Loader2, Clock } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, login, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -20,6 +21,8 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isSessionExpired = searchParams?.get('reason') === 'session_expired';
 
   useEffect(() => {
     try {
@@ -100,6 +103,20 @@ export default function LoginPage() {
 
       {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-4 my-auto py-6">
+        {/* Session Expired Alert Banner */}
+        {isSessionExpired && !error && (
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl border border-amber-800/80 bg-zinc-900 text-amber-300 text-xs animate-in fade-in">
+            <Clock className="h-4 w-4 shrink-0 mt-0.5 text-amber-400" />
+            <div>
+              <p className="font-semibold text-amber-200">Session Expired</p>
+              <p className="text-amber-300/90 text-[11px] mt-0.5">
+                Your session has expired. Please sign in again to continue.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Regular Error Alert */}
         {error && (
           <div className="flex items-start gap-2.5 p-3 rounded-xl border border-red-900/60 bg-zinc-900 text-red-400 text-xs">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -203,5 +220,19 @@ export default function LoginPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 min-h-[100dvh] flex items-center justify-center bg-zinc-950">
+          <div className="h-6 w-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }

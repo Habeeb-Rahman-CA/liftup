@@ -107,6 +107,7 @@ model Exercise {
   defaultSets     Int?          @default(3)
   defaultRepsMin  Int?          @default(8)
   defaultRepsMax  Int?          @default(12)
+  orderIndex      Int           @default(0)
   isActive        Boolean       @default(true)
   exerciseLogs    ExerciseLog[]
   createdAt       DateTime      @default(now())
@@ -114,6 +115,8 @@ model Exercise {
 
   @@index([category])
   @@index([name])
+  @@index([orderIndex])
+  @@index([isActive])
 }
 
 /// Actual logged workout performance instance

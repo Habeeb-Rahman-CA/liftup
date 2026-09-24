@@ -32,13 +32,13 @@ export const BottomNav: React.FC = () => {
         </Link>
 
         <Link
-          href="/dashboard"
+          href="/exercises"
           className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
-            pathname === '/workouts' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
+            pathname === '/exercises' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           <Dumbbell className="h-5 w-5" />
-          <span className="text-[10px] font-medium">Workouts</span>
+          <span className="text-[10px] font-medium">Exercises</span>
         </Link>
 
         <Link

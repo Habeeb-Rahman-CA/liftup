@@ -109,6 +109,9 @@ export interface WorkoutDayDto {
   updatedAt: string;
 }
 
+export type StandardExerciseCategory =
+  'CHEST' | 'BACK' | 'SHOULDERS' | 'LEGS' | 'ARMS' | 'CORE' | 'CARDIO' | 'OTHER';
+
 export interface ExerciseDto {
   id: string;
   name: string;
@@ -118,9 +121,51 @@ export interface ExerciseDto {
   defaultSets?: number | null;
   defaultRepsMin?: number | null;
   defaultRepsMax?: number | null;
+  orderIndex: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateExercisePayload {
+  name: string;
+  category: string;
+  description?: string;
+  instructions?: string;
+  defaultSets?: number;
+  defaultRepsMin?: number;
+  defaultRepsMax?: number;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateExercisePayload {
+  name?: string;
+  category?: string;
+  description?: string | null;
+  instructions?: string | null;
+  defaultSets?: number | null;
+  defaultRepsMin?: number | null;
+  defaultRepsMax?: number | null;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface ReorderExerciseItem {
+  id: string;
+  orderIndex: number;
+}
+
+export interface ReorderExercisesPayload {
+  items: ReorderExerciseItem[];
+}
+
+export interface ExerciseQueryParams {
+  category?: string;
+  search?: string;
+  isActive?: boolean | string;
+  sortBy?: 'orderIndex' | 'name' | 'category' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface WorkoutSessionDto {

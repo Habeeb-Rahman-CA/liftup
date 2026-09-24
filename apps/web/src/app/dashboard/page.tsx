@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -15,6 +16,8 @@ import {
   LogOut,
   CheckCircle2,
   KeyRound,
+  ArrowRight,
+  BookOpen,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -177,16 +180,27 @@ export default function DashboardPage() {
                 <Dumbbell className="h-3.5 w-3.5" />
               </div>
               <CardTitle className="text-xs sm:text-sm font-medium text-zinc-200">
-                Workout Tracking
+                Exercise Library
               </CardTitle>
             </div>
-            <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-normal">
-              Phase 2 Coming Next
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-normal">
+                Phase 2 Ready
+              </Badge>
+              <Link href="/exercises">
+                <Button
+                  size="sm"
+                  className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 h-7 text-xs px-2.5 rounded-lg font-medium gap-1"
+                >
+                  <span>Manage Catalog</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </Link>
+            </div>
           </div>
           <CardDescription className="text-zinc-500 text-[11px] sm:text-xs">
-            User ownership is established. Workout schedules, sessions, and set logging are ready to
-            be built.
+            21 initial exercises seeded. Full exercise CRUD, muscle categories, default sets/reps,
+            reordering, and activation toggling enabled.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-4 pt-0 sm:p-6 sm:pt-0">

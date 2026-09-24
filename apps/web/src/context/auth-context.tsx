@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 import type { UserProfile, AuthResponse, LoginPayload, RegisterPayload } from '@liftup/types';
 
+import { handleSessionExpired, TOKEN_COOKIE_KEY, REFRESH_COOKIE_KEY } from '@/lib/api-client';
+
 interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
@@ -15,9 +17,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const TOKEN_COOKIE_KEY = 'liftup_access_token';
-const REFRESH_COOKIE_KEY = 'liftup_refresh_token';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -34,9 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!res.ok) {
         if (res.status === 401) {
-          // Token expired or invalid
-          deleteCookie(TOKEN_COOKIE_KEY);
-          deleteCookie(REFRESH_COOKIE_KEY);
+          handleSessionExpired();
           setToken(null);
           setUser(null);
         }
@@ -44,12 +41,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await res.json();
-      // Handle either direct UserProfile or { success: true, data: UserProfile }
       const profile = data.data || data;
       return profile;
     } catch {
       return null;
     }
+  }, []);
+
+  // Listen for global session-expired events from any API call
+  useEffect(() => {
+    const handleExpiredEvent = () => {
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('liftup:session-expired', handleExpiredEvent);
+    return () => {
+      window.removeEventListener('liftup:session-expired', handleExpiredEvent);
+    };
   }, []);
 
   useEffect(() => {
