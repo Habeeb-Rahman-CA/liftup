@@ -11,6 +11,7 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   error?: {
     code: string;
+    message?: string;
     details?: unknown;
   };
   timestamp: string;
@@ -19,6 +20,7 @@ export interface ApiResponse<T = unknown> {
 export interface HealthStatus {
   status: 'ok' | 'error' | 'degraded';
   service?: string;
+  version?: string;
   timestamp: string;
   uptime?: number;
   database: {
@@ -28,20 +30,55 @@ export interface HealthStatus {
     latencyMs?: number;
     error?: string;
   };
-  version?: string;
 }
 
 // -----------------------------------------------------------------------------
-// USER DOMAIN
+// AUTH & USER DOMAIN
 // -----------------------------------------------------------------------------
+export type UserRole = 'USER' | 'ADMIN';
+
 export interface UserProfile {
   id: string;
   email: string;
   name?: string | null;
   avatar?: string | null;
   timezone?: string | null;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number; // in seconds
+}
+
+export interface AuthResponse {
+  user: UserProfile;
+  tokens: AuthTokens;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  name?: string;
+  timezone?: string;
+}
+
+export interface RefreshTokenPayload {
+  refreshToken: string;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  avatar?: string;
+  timezone?: string;
 }
 
 // -----------------------------------------------------------------------------

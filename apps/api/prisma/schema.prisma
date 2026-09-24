@@ -11,6 +11,11 @@ datasource db {
 // -----------------------------------------------------------------------------
 // ENUMS
 // -----------------------------------------------------------------------------
+enum Role {
+  USER
+  ADMIN
+}
+
 enum WorkoutSessionStatus {
   PLANNED
   IN_PROGRESS
@@ -25,20 +30,37 @@ enum SetType {
 }
 
 // -----------------------------------------------------------------------------
-// USER DOMAIN
+// USER & AUTH DOMAIN
 // -----------------------------------------------------------------------------
 model User {
   id               String            @id @default(cuid())
   email            String            @unique
+  passwordHash     String
   name             String?
   avatar           String?
   timezone         String?           @default("UTC")
+  role             Role              @default(USER)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+
+  // Auth & Session Relations
+  refreshTokens    RefreshToken[]
 
   // Workout Relations
   workoutSchedules WorkoutSchedule[]
   workoutSessions  WorkoutSession[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
 }
 
 // -----------------------------------------------------------------------------
