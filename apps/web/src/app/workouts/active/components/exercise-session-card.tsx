@@ -20,7 +20,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { sessionsApi } from '@/lib/api-client';
-import { ExerciseHistoryModal } from '@/components/exercises/exercise-history-modal';
 import type {
   ExerciseLogDto,
   SetLogDto,
@@ -53,7 +52,6 @@ export function ExerciseSessionCard({
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [exerciseNote, setExerciseNote] = useState(log.note || '');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showPrevCard, setShowPrevCard] = useState(true);
   const [isAutofilling, setIsAutofilling] = useState(false);
 
@@ -204,16 +202,6 @@ export function ExerciseSessionCard({
               <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-medium">
                 {log.exercise?.category || 'Strength'}
               </span>
-              {hasPreviousData ? (
-                <button
-                  type="button"
-                  onClick={() => setShowHistoryModal(true)}
-                  className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 font-mono font-medium before:content-['•'] before:mr-1 before:text-zinc-600 transition-colors"
-                >
-                  <History className="h-3 w-3" />
-                  <span>History</span>
-                </button>
-              ) : null}
             </div>
           </div>
         </div>
@@ -247,17 +235,6 @@ export function ExerciseSessionCard({
                 <button
                   type="button"
                   onClick={() => {
-                    setShowHistoryModal(true);
-                    setMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100 text-left"
-                >
-                  <History className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>View Full History</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
                     setShowNoteInput(!showNoteInput);
                     setMenuOpen(false);
                   }}
@@ -285,13 +262,14 @@ export function ExerciseSessionCard({
 
       {/* PHASE 5: LAST PERFORMANCE CARD */}
       {hasPreviousData && (
-        <div className="bg-zinc-950/70 border-b border-zinc-800/80 px-3.5 py-2.5 sm:px-4">
+        <div className="bg-zinc-950/80 border-b border-zinc-800/80 px-3.5 py-3 sm:px-4 space-y-2.5">
+          {/* Header Row */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded">
                 LAST SESSION
               </span>
-              <span className="text-xs text-zinc-300 font-medium truncate">
+              <span className="text-xs text-zinc-400 font-medium truncate">
                 {prevPerformance?.lastSessionName || 'Previous Workout'}
               </span>
               {prevPerformance?.lastPerformedAt && (
@@ -301,60 +279,58 @@ export function ExerciseSessionCard({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleAutofillAll}
-                disabled={isAutofilling}
-                className="flex items-center gap-1 text-[11px] font-mono text-emerald-300 hover:text-emerald-200 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-800/80 px-2 py-0.5 rounded-lg transition-colors"
-                title="Autofill current empty sets with previous weights & reps"
-              >
-                <Sparkles className="h-3 w-3 text-emerald-400" />
-                <span>{isAutofilling ? 'Copying...' : 'Autofill'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowPrevCard(!showPrevCard)}
-                className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded"
-                title={showPrevCard ? 'Collapse previous info' : 'Expand previous info'}
-              >
-                {showPrevCard ? (
-                  <ChevronUp className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleAutofillAll}
+              disabled={isAutofilling}
+              className="flex items-center gap-1.5 text-xs font-mono font-medium text-emerald-300 hover:text-emerald-200 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-800 px-2.5 py-1 rounded-lg transition-colors"
+              title="Autofill current empty sets with previous weights & reps"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+              <span>{isAutofilling ? 'Copying...' : 'Autofill'}</span>
+            </button>
           </div>
 
-          {showPrevCard && (
-            <div className="mt-2 space-y-1.5 pt-1.5 border-t border-zinc-800/50 text-xs">
-              {/* Previous Note / Coaching Cue */}
-              {prevPerformance?.previousNote && (
-                <div className="flex items-start gap-1.5 text-zinc-300 bg-zinc-900/90 rounded-lg p-2 border border-zinc-800/80">
-                  <FileText className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                  <span className="italic text-zinc-300">"{prevPerformance.previousNote}"</span>
-                </div>
-              )}
+          {/* Previous Sets Breakdown */}
+          {prevPerformance?.sets && prevPerformance.sets.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-0.5">
+              {prevPerformance.sets.map((s, idx) => {
+                const isWarmup = s.type === 'WARMUP';
+                const weightStr =
+                  s.weight !== null && s.weight !== undefined ? `${s.weight}kg` : '0kg';
+                const repsStr = s.reps !== null && s.reps !== undefined ? `${s.reps}` : '0';
 
-              {/* Best Set & Est 1RM pill */}
-              {prevPerformance?.bestSet && (
-                <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono text-zinc-400">
-                  <span className="flex items-center gap-1 text-amber-300">
-                    <TrendingUp className="h-3 w-3 text-amber-400" />
-                    Best: {prevPerformance.bestSet.weight}kg × {prevPerformance.bestSet.reps}
-                  </span>
-                  {prevPerformance.estimated1RM ? (
-                    <span className="text-zinc-400 before:content-['•'] before:mr-1 before:text-zinc-600">
-                      Est. 1RM:{' '}
-                      <strong className="text-emerald-300 font-bold">
-                        {prevPerformance.estimated1RM}kg
-                      </strong>
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 font-mono text-xs font-semibold text-zinc-200 shadow-sm"
+                  >
+                    <span
+                      className={`text-[10px] font-bold ${
+                        isWarmup ? 'text-amber-400' : 'text-zinc-500'
+                      }`}
+                    >
+                      {isWarmup ? `W${s.setNumber || idx + 1}:` : `Set ${s.setNumber || idx + 1}:`}
                     </span>
-                  ) : null}
-                </div>
-              )}
+                    <span>
+                      {weightStr} × {repsStr}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Previous Note if present */}
+          {prevPerformance?.previousNote && (
+            <div className="rounded-xl bg-zinc-900/90 border border-zinc-800 p-2.5 space-y-1">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
+                <FileText className="h-3.5 w-3.5 text-amber-400" />
+                <span>Note:</span>
+              </div>
+              <p className="text-xs text-zinc-200 pl-5 leading-relaxed">
+                {prevPerformance.previousNote}
+              </p>
             </div>
           )}
         </div>
@@ -551,15 +527,6 @@ export function ExerciseSessionCard({
           )}
         </div>
       </div>
-
-      {/* Full Exercise History Modal */}
-      <ExerciseHistoryModal
-        isOpen={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
-        exerciseId={log.exerciseId}
-        exerciseName={log.exercise?.name}
-        category={log.exercise?.category}
-      />
     </div>
   );
 }

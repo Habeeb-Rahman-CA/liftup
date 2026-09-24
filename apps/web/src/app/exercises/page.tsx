@@ -27,7 +27,7 @@ import {
   Layers,
   History,
 } from 'lucide-react';
-import { ExerciseHistoryModal } from '@/components/exercises/exercise-history-modal';
+import { ExerciseHistoryInline } from '@/components/exercises/exercise-history-inline';
 import type { ExerciseDto, CreateExercisePayload, UpdateExercisePayload } from '@liftup/types';
 
 export default function ExercisesPage() {
@@ -51,7 +51,6 @@ export default function ExercisesPage() {
   const [editingExercise, setEditingExercise] = useState<ExerciseDto | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExerciseDto | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [historyModalExercise, setHistoryModalExercise] = useState<ExerciseDto | null>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -436,17 +435,6 @@ export default function ExercisesPage() {
                       )}
                     </Button>
 
-                    {/* History & PRs */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setHistoryModalExercise(exercise)}
-                      className="h-8 px-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 rounded-lg text-xs"
-                      title="View Performance History & PRs"
-                    >
-                      <History className="h-3.5 w-3.5" />
-                    </Button>
-
                     {/* Edit */}
                     <Button
                       variant="ghost"
@@ -491,7 +479,7 @@ export default function ExercisesPage() {
 
                 {/* Expandable Smooth Detail Drawer */}
                 {isExpanded && (
-                  <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 pt-3 border-t border-zinc-800/80 bg-zinc-950/60 space-y-2.5 animate-in fade-in-50 duration-150">
+                  <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 pt-3 border-t border-zinc-800/80 bg-zinc-950/60 space-y-3 animate-in fade-in-50 duration-150">
                     {/* Instructions / Form Cues */}
                     {exercise.instructions ? (
                       <div className="space-y-1 p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs">
@@ -503,11 +491,7 @@ export default function ExercisesPage() {
                           {exercise.instructions}
                         </p>
                       </div>
-                    ) : (
-                      <div className="text-[11px] text-zinc-500 italic px-1">
-                        No specific form cues recorded for this exercise yet.
-                      </div>
-                    )}
+                    ) : null}
 
                     {/* Description & Equipment Details */}
                     {exercise.description && (
@@ -548,6 +532,9 @@ export default function ExercisesPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Minimalist Performance History, PRs, and Last Session */}
+                    <ExerciseHistoryInline exerciseId={exercise.id} />
                   </div>
                 )}
               </div>
@@ -597,15 +584,6 @@ export default function ExercisesPage() {
         onClose={() => {
           if (!isDeleting) setDeleteTarget(null);
         }}
-      />
-
-      {/* Exercise Progression / History Modal */}
-      <ExerciseHistoryModal
-        isOpen={Boolean(historyModalExercise)}
-        onClose={() => setHistoryModalExercise(null)}
-        exerciseId={historyModalExercise?.id || null}
-        exerciseName={historyModalExercise?.name}
-        category={historyModalExercise?.category}
       />
 
       {/* Floating Action Button (FAB) at Bottom Right */}
