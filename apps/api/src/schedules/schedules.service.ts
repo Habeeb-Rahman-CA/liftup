@@ -15,6 +15,7 @@ import type {
   WorkoutDayDto,
   TodayWorkoutDto,
   WorkoutDayExerciseDto,
+  WorkoutSessionDto,
 } from '@liftup/types';
 
 const DAY_NAMES = [
@@ -236,6 +237,97 @@ export class SchedulesService {
       }
     }
 
+    // Check if a completed session was done today
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const completedSessionToday = await this.prisma.workoutSession.findFirst({
+      where: {
+        userId,
+        status: 'COMPLETED',
+        OR: [
+          { endedAt: { gte: startOfToday } },
+          { startedAt: { gte: startOfToday } },
+        ],
+      },
+      orderBy: { endedAt: 'desc' },
+      include: {
+        exerciseLogs: {
+          orderBy: { order: 'asc' },
+          include: {
+            exercise: true,
+            setLogs: {
+              orderBy: { setNumber: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    let completedTodayDto: WorkoutSessionDto | null = null;
+    if (completedSessionToday) {
+      completedTodayDto = {
+        id: completedSessionToday.id,
+        userId: completedSessionToday.userId,
+        workoutDayId: completedSessionToday.workoutDayId,
+        name: completedSessionToday.name,
+        status: completedSessionToday.status as any,
+        skipReason: completedSessionToday.skipReason,
+        note: completedSessionToday.note,
+        startedAt: completedSessionToday.startedAt?.toISOString() || null,
+        endedAt: completedSessionToday.endedAt?.toISOString() || null,
+        durationMinutes: completedSessionToday.durationMinutes,
+        exerciseLogs: completedSessionToday.exerciseLogs.map((log: any) => ({
+          id: log.id,
+          workoutSessionId: log.workoutSessionId,
+          exerciseId: log.exerciseId,
+          order: log.order,
+          note: log.note,
+          exercise: log.exercise
+            ? {
+                id: log.exercise.id,
+                name: log.exercise.name,
+                category: log.exercise.category,
+                description: log.exercise.description,
+                instructions: log.exercise.instructions,
+                defaultSets: log.exercise.defaultSets,
+                defaultRepsMin: log.exercise.defaultRepsMin,
+                defaultRepsMax: log.exercise.defaultRepsMax,
+                orderIndex: log.exercise.orderIndex,
+                isActive: log.exercise.isActive,
+                createdAt: log.exercise.createdAt.toISOString(),
+                updatedAt: log.exercise.updatedAt.toISOString(),
+              }
+            : undefined,
+          setLogs: (log.setLogs || [])
+            .sort((a: any, b: any) => {
+              if (a.type === 'WARMUP' && b.type !== 'WARMUP') return -1;
+              if (a.type !== 'WARMUP' && b.type === 'WARMUP') return 1;
+              return a.setNumber - b.setNumber;
+            })
+            .map((s: any) => ({
+              id: s.id,
+              exerciseLogId: s.exerciseLogId,
+              type: s.type as any,
+              setNumber: s.setNumber,
+              reps: s.reps,
+              weight: s.weight !== null ? Number(s.weight) : null,
+              rpe: s.rpe !== null ? Number(s.rpe) : null,
+              completed: s.completed,
+              note: s.note,
+              createdAt: s.createdAt.toISOString(),
+              updatedAt: s.updatedAt.toISOString(),
+            })),
+          createdAt: log.createdAt.toISOString(),
+          updatedAt: log.updatedAt.toISOString(),
+        })),
+        createdAt: completedSessionToday.createdAt.toISOString(),
+        updatedAt: completedSessionToday.updatedAt.toISOString(),
+      };
+    }
+
     return {
       todayDayOfWeek,
       todayDayName,
@@ -244,6 +336,7 @@ export class SchedulesService {
       upcoming: upcomingDay,
       scheduleId: scheduleDto.id,
       scheduleName: scheduleDto.name,
+      completedToday: completedTodayDto,
     };
   }
 

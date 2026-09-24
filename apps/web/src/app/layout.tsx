@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/auth-context';
+import { ActiveWorkoutProvider } from '@/context/active-workout-context';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
+import { ActiveWorkoutBar } from '@/components/layout/active-workout-bar';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -52,9 +54,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
       <body className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans antialiased selection:bg-emerald-950 selection:text-emerald-300">
         <AuthProvider>
-          <Navbar />
-          <div className="flex-1 flex flex-col">{children}</div>
-          <BottomNav />
+          <ActiveWorkoutProvider>
+            <Navbar />
+            <div className="flex-1 flex flex-col">{children}</div>
+            <ActiveWorkoutBar />
+            <BottomNav />
+          </ActiveWorkoutProvider>
         </AuthProvider>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { useActiveWorkout } from '@/context/active-workout-context';
 import { schedulesApi } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ import {
   ChevronDown,
   ChevronUp,
   BedDouble,
+  Play,
 } from 'lucide-react';
 import type {
   WorkoutScheduleDto,
@@ -35,6 +37,7 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 export default function WorkoutsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { activeSession, startWorkout } = useActiveWorkout();
 
   // State
   const [schedule, setSchedule] = useState<WorkoutScheduleDto | null>(null);
@@ -348,20 +351,32 @@ export default function WorkoutsPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Exercise List Header & Add Action */}
+                      {/* Exercise List Header & Actions */}
                       <div className="flex items-center justify-between px-1">
                         <span className="text-[10px] text-zinc-500 font-mono uppercase">
                           Exercises ({exerciseCount})
                         </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setAssignModalDay(day)}
-                          className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-300 text-xs h-7 px-2.5 rounded-lg gap-1"
-                        >
-                          <Plus className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>Add Exercise</span>
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          {exerciseCount > 0 && (
+                            <Button
+                              size="sm"
+                              onClick={() => startWorkout({ workoutDayId: day.id, name: day.name })}
+                              className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-7 px-2.5 rounded-lg gap-1 font-medium shadow-sm"
+                            >
+                              <Play className="h-3 w-3 fill-current" />
+                              <span>Start Workout</span>
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAssignModalDay(day)}
+                            className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-300 text-xs h-7 px-2.5 rounded-lg gap-1"
+                          >
+                            <Plus className="h-3.5 w-3.5 text-emerald-400" />
+                            <span>Add Exercise</span>
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Exercise List Content */}

@@ -133,6 +133,7 @@ export interface TodayWorkoutDto {
   upcoming: WorkoutDayDto | null;
   scheduleId: string;
   scheduleName: string;
+  completedToday?: WorkoutSessionDto | null;
 }
 
 export interface AssignExercisePayload {
@@ -265,6 +266,64 @@ export interface SetLogDto {
   note?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StartWorkoutSessionPayload {
+  workoutDayId?: string;
+  name?: string;
+  note?: string;
+}
+
+export interface UpdateWorkoutSessionPayload {
+  name?: string;
+  status?: WorkoutSessionStatus;
+  note?: string | null;
+  skipReason?: string | null;
+  endedAt?: string | null;
+  durationMinutes?: number | null;
+}
+
+export interface CompleteWorkoutSessionPayload {
+  note?: string | null;
+  durationMinutes?: number;
+}
+
+export interface AddExerciseToSessionPayload {
+  exerciseId: string;
+  order?: number;
+  note?: string;
+}
+
+export interface CreateSetLogPayload {
+  type?: SetType;
+  setNumber?: number;
+  reps?: number;
+  weight?: number;
+  rpe?: number;
+  completed?: boolean;
+  note?: string;
+}
+
+export interface UpdateSetLogPayload {
+  type?: SetType;
+  setNumber?: number;
+  reps?: number | null;
+  weight?: number | null;
+  rpe?: number | null;
+  completed?: boolean;
+  note?: string | null;
+}
+
+export interface PreviousExercisePerformanceDto {
+  exerciseId: string;
+  lastPerformedAt?: string | null;
+  sets: {
+    type: SetType;
+    setNumber: number;
+    weight?: number | null;
+    reps?: number | null;
+    completed: boolean;
+  }[];
 }
 
 // -----------------------------------------------------------------------------

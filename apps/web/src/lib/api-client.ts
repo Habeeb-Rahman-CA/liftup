@@ -14,6 +14,17 @@ import type {
   UpdateAssignedExercisePayload,
   UpdateDayPayload,
   ReorderDayExercisesPayload,
+  WorkoutSessionDto,
+  ExerciseLogDto,
+  SetLogDto,
+  StartWorkoutSessionPayload,
+  UpdateWorkoutSessionPayload,
+  CompleteWorkoutSessionPayload,
+  AddExerciseToSessionPayload,
+  CreateSetLogPayload,
+  UpdateSetLogPayload,
+  PreviousExercisePerformanceDto,
+  PaginatedResult,
 } from '@liftup/types';
 
 export const TOKEN_COOKIE_KEY = 'liftup_access_token';
@@ -335,6 +346,168 @@ export const schedulesApi = {
       throw new Error(err.message || 'Failed to reset schedule to default');
     }
 
+    const data = await res.json();
+    return data.data || data;
+  },
+};
+
+export const sessionsApi = {
+  async getActive(): Promise<WorkoutSessionDto | null> {
+    const res = await fetchWithAuth('/api/v1/sessions/active');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to check active workout session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async start(payload: StartWorkoutSessionPayload): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth('/api/v1/sessions/start', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to start workout session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getById(id: string): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load workout session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getHistory(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<PaginatedResult<WorkoutSessionDto>> {
+    const res = await fetchWithAuth(`/api/v1/sessions/history?page=${page}&limit=${limit}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load workout history');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getPreviousPerformance(exerciseId: string): Promise<PreviousExercisePerformanceDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/previous-performance/${exerciseId}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load previous exercise performance');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async update(id: string, payload: UpdateWorkoutSessionPayload): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update workout session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async complete(id: string, payload: CompleteWorkoutSessionPayload): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to complete workout session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async cancel(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetchWithAuth(`/api/v1/sessions/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to cancel workout session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async addExercise(
+    sessionId: string,
+    payload: AddExerciseToSessionPayload,
+  ): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/${sessionId}/exercises`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to add exercise to session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async removeExercise(sessionId: string, exerciseLogId: string): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/${sessionId}/exercises/${exerciseLogId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to remove exercise from session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async createSet(exerciseLogId: string, payload: CreateSetLogPayload): Promise<SetLogDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/exercise-logs/${exerciseLogId}/sets`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to add set');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updateSet(setId: string, payload: UpdateSetLogPayload): Promise<SetLogDto> {
+    const res = await fetchWithAuth(`/api/v1/sessions/sets/${setId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update set');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async deleteSet(setId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetchWithAuth(`/api/v1/sessions/sets/${setId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to remove set');
+    }
     const data = await res.json();
     return data.data || data;
   },

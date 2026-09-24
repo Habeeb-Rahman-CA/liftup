@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { useActiveWorkout } from '@/context/active-workout-context';
 import { schedulesApi } from '@/lib/api-client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import {
   BedDouble,
   Clock,
   Sparkles,
+  Play,
 } from 'lucide-react';
 import type { TodayWorkoutDto } from '@liftup/types';
 
@@ -30,6 +32,7 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 export default function DashboardPage() {
   const router = useRouter();
   const { user, token, logout, loading: authLoading } = useAuth();
+  const { activeSession, startWorkout } = useActiveWorkout();
   const [todayData, setTodayData] = useState<TodayWorkoutDto | null>(null);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
 
@@ -52,6 +55,31 @@ export default function DashboardPage() {
         });
     }
   }, [user]);
+
+  // Calculate completed workout stats if workout finished today
+  const completedStats = React.useMemo(() => {
+    if (!todayData?.completedToday) return null;
+    let volume = 0;
+    let totalCompletedSets = 0;
+
+    todayData.completedToday.exerciseLogs?.forEach(log => {
+      log.setLogs?.forEach(set => {
+        if (set.completed) {
+          totalCompletedSets++;
+          const w = Number(set.weight) || 0;
+          const r = Number(set.reps) || 0;
+          volume += w * r;
+        }
+      });
+    });
+
+    return {
+      volume: Math.round(volume * 10) / 10,
+      completedSetsCount: totalCompletedSets,
+      durationMinutes: todayData.completedToday.durationMinutes || 1,
+      exerciseCount: todayData.completedToday.exerciseLogs?.length || 0,
+    };
+  }, [todayData?.completedToday]);
 
   if (authLoading || !user) {
     return (
@@ -119,7 +147,9 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
-                Today&apos;s Workout Spotlight
+                {todayData?.completedToday
+                  ? "Today's Completed Workout"
+                  : "Today's Workout Spotlight"}
               </span>
             </div>
             <span className="text-[11px] text-zinc-400 font-mono">
@@ -127,7 +157,125 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          {todayData?.today ? (
+          {todayData?.completedToday ? (
+            /* COMPLETED WORKOUT DETAILED VIEW */
+            <div className="space-y-3.5 animate-in fade-in duration-200">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
+                      {todayData.completedToday.name || "Today's Workout"}
+                    </h2>
+                    <Badge className="bg-emerald-950 text-emerald-300 border-emerald-700 text-[10px] font-medium gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Completed Today
+                    </Badge>
+                  </div>
+                  {todayData.completedToday.note && (
+                    <p className="text-xs text-zinc-400 mt-1 max-w-xl italic">
+                      &ldquo;{todayData.completedToday.note}&rdquo;
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link href="/workouts">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                      title="View Schedule"
+                    >
+                      <span>Schedule</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Metric Quick Stats Strip */}
+              <div className="grid grid-cols-3 gap-2 py-2 border-y border-zinc-800/80 text-center">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
+                    Duration
+                  </p>
+                  <p className="text-xs sm:text-sm font-mono font-bold text-zinc-100">
+                    {completedStats?.durationMinutes} mins
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
+                    Volume Lifted
+                  </p>
+                  <p className="text-xs sm:text-sm font-mono font-bold text-emerald-300">
+                    {completedStats?.volume.toLocaleString()} kg
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
+                    Sets Done
+                  </p>
+                  <p className="text-xs sm:text-sm font-mono font-bold text-zinc-100">
+                    {completedStats?.completedSetsCount} sets
+                  </p>
+                </div>
+              </div>
+
+              {/* Details of What Was Done (Exercise & Sets Breakdown) */}
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono">
+                  What You Accomplished Today ({todayData.completedToday.exerciseLogs?.length || 0}{' '}
+                  Exercises)
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {todayData.completedToday.exerciseLogs?.map((log, idx) => {
+                    const completedSets = log.setLogs?.filter(s => s.completed) || [];
+                    return (
+                      <div
+                        key={log.id}
+                        className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="font-semibold text-xs text-zinc-100 truncate">
+                            {idx + 1}. {log.exercise?.name || 'Exercise'}
+                          </span>
+                          <span className="text-[9px] uppercase font-mono text-zinc-500 shrink-0">
+                            {log.exercise?.category}
+                          </span>
+                        </div>
+
+                        {/* Set breakdown chips */}
+                        <div className="flex flex-wrap gap-1">
+                          {completedSets.length === 0 ? (
+                            <span className="text-[10px] text-zinc-500 italic">No sets logged</span>
+                          ) : (
+                            completedSets.map((s, sIdx) => (
+                              <span
+                                key={s.id}
+                                className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                                  s.type === 'WARMUP'
+                                    ? 'bg-amber-950/50 text-amber-300 border-amber-800/60'
+                                    : 'bg-zinc-900 text-emerald-300 border-zinc-800'
+                                }`}
+                              >
+                                {s.type === 'WARMUP' ? 'W: ' : `${sIdx + 1}: `}
+                                {s.weight !== null && s.weight !== undefined
+                                  ? `${s.weight}kg × `
+                                  : ''}
+                                {s.reps || 0}r
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : todayData?.today ? (
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
@@ -154,15 +302,47 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <Link href="/workouts">
-                  <Button
-                    size="sm"
-                    className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8 px-3 rounded-xl font-medium gap-1.5 shrink-0"
-                  >
-                    <span>View Schedule</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  {!todayData.today.isRestDay &&
+                    (todayData.today.exercises?.length || 0) > 0 &&
+                    (activeSession ? (
+                      <Link href="/workouts/active">
+                        <Button
+                          size="sm"
+                          className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8 px-3 rounded-xl font-medium gap-1.5 shadow-md"
+                        >
+                          <Play className="h-3 w-3 fill-current" />
+                          <span>Resume Workout</span>
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          startWorkout({
+                            workoutDayId: todayData.today!.id,
+                            name: todayData.today!.name,
+                          })
+                        }
+                        className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8 px-3 rounded-xl font-medium gap-1.5 shadow-md"
+                      >
+                        <Play className="h-3 w-3 fill-current" />
+                        <span>Start Workout</span>
+                      </Button>
+                    ))}
+
+                  <Link href="/workouts">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                      title="View Schedule"
+                    >
+                      <span className="hidden sm:inline">Schedule</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
 
               {/* Today's Exercise Preview Chips */}

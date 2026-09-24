@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
 import { SchedulesModule } from './schedules/schedules.module.js';
+import { SessionsModule } from './sessions/sessions.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SchedulesModule } from './schedules/schedules.module.js';
     UsersModule,
     ExercisesModule,
     SchedulesModule,
+    SessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
