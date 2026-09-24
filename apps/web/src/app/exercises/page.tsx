@@ -477,7 +477,7 @@ export default function ExercisesPage() {
 
                 {/* Expandable Smooth Detail Drawer */}
                 {isExpanded && (
-                  <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 pt-1 border-t border-zinc-800/80 bg-zinc-950/60 space-y-2.5 animate-in fade-in-50 duration-150">
+                  <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 pt-3 border-t border-zinc-800/80 bg-zinc-950/60 space-y-2.5 animate-in fade-in-50 duration-150">
                     {/* Instructions / Form Cues */}
                     {exercise.instructions ? (
                       <div className="space-y-1 p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs">

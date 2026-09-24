@@ -104,9 +104,66 @@ export interface WorkoutDayDto {
   scheduleId: string;
   name: string;
   dayOfWeek: number; // 0 (Sun) - 6 (Sat)
+  isRestDay: boolean;
   description?: string | null;
+  exercises?: WorkoutDayExerciseDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WorkoutDayExerciseDto {
+  id: string;
+  workoutDayId: string;
+  exerciseId: string;
+  exercise?: ExerciseDto;
+  targetSets?: number | null;
+  targetRepsMin?: number | null;
+  targetRepsMax?: number | null;
+  orderIndex: number;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TodayWorkoutDto {
+  todayDayOfWeek: number;
+  todayDayName: string;
+  todayDateFormatted: string;
+  today: WorkoutDayDto | null;
+  upcoming: WorkoutDayDto | null;
+  scheduleId: string;
+  scheduleName: string;
+}
+
+export interface AssignExercisePayload {
+  exerciseId: string;
+  targetSets?: number;
+  targetRepsMin?: number;
+  targetRepsMax?: number;
+  orderIndex?: number;
+  note?: string;
+}
+
+export interface BatchAssignExercisesPayload {
+  exercises: AssignExercisePayload[];
+}
+
+export interface UpdateAssignedExercisePayload {
+  targetSets?: number;
+  targetRepsMin?: number;
+  targetRepsMax?: number;
+  orderIndex?: number;
+  note?: string | null;
+}
+
+export interface UpdateDayPayload {
+  name?: string;
+  isRestDay?: boolean;
+  description?: string | null;
+}
+
+export interface ReorderDayExercisesPayload {
+  items: { id: string; orderIndex: number }[];
 }
 
 export type StandardExerciseCategory =

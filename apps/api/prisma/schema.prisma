@@ -84,34 +84,58 @@ model WorkoutSchedule {
 
 /// Day defined within a workout schedule (e.g., "Leg Day", "Push Day")
 model WorkoutDay {
-  id          String           @id @default(cuid())
+  id          String               @id @default(cuid())
   scheduleId  String
-  schedule    WorkoutSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  schedule    WorkoutSchedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   name        String
-  dayOfWeek   Int              // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  dayOfWeek   Int                  // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  isRestDay   Boolean              @default(false)
   description String?
+  exercises   WorkoutDayExercise[]
   sessions    WorkoutSession[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   @@index([scheduleId])
+  @@index([dayOfWeek])
+}
+
+/// Exercise assigned to a specific workout day routine
+model WorkoutDayExercise {
+  id            String     @id @default(cuid())
+  workoutDayId  String
+  workoutDay    WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exerciseId    String
+  exercise      Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  targetSets    Int?       @default(3)
+  targetRepsMin Int?       @default(8)
+  targetRepsMax Int?       @default(12)
+  orderIndex    Int        @default(0)
+  note          String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([workoutDayId])
+  @@index([exerciseId])
+  @@index([orderIndex])
 }
 
 /// Master Exercise library catalog
 model Exercise {
-  id              String        @id @default(cuid())
-  name            String
-  category        String        // e.g., CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE, CARDIO
-  description     String?
-  instructions    String?
-  defaultSets     Int?          @default(3)
-  defaultRepsMin  Int?          @default(8)
-  defaultRepsMax  Int?          @default(12)
-  orderIndex      Int           @default(0)
-  isActive        Boolean       @default(true)
-  exerciseLogs    ExerciseLog[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  category            String               // e.g., CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE, CARDIO
+  description         String?
+  instructions        String?
+  defaultSets         Int?                 @default(3)
+  defaultRepsMin      Int?                 @default(8)
+  defaultRepsMax      Int?                 @default(12)
+  orderIndex          Int                  @default(0)
+  isActive            Boolean              @default(true)
+  workoutDayExercises WorkoutDayExercise[]
+  exerciseLogs        ExerciseLog[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([category])
   @@index([name])

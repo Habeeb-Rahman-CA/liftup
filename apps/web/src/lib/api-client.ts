@@ -5,6 +5,15 @@ import type {
   UpdateExercisePayload,
   ReorderExercisesPayload,
   ExerciseQueryParams,
+  WorkoutScheduleDto,
+  WorkoutDayDto,
+  WorkoutDayExerciseDto,
+  TodayWorkoutDto,
+  AssignExercisePayload,
+  BatchAssignExercisesPayload,
+  UpdateAssignedExercisePayload,
+  UpdateDayPayload,
+  ReorderDayExercisesPayload,
 } from '@liftup/types';
 
 export const TOKEN_COOKIE_KEY = 'liftup_access_token';
@@ -183,6 +192,147 @@ export const exercisesApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to delete exercise');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+};
+
+export const schedulesApi = {
+  async getActiveSchedule(): Promise<WorkoutScheduleDto> {
+    const res = await fetchWithAuth('/api/v1/schedules/active', { cache: 'no-store' });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch weekly schedule');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getTodayWorkout(): Promise<TodayWorkoutDto> {
+    const res = await fetchWithAuth('/api/v1/schedules/today', { cache: 'no-store' });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to fetch today's workout");
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updateDay(dayId: string, payload: UpdateDayPayload): Promise<WorkoutDayDto> {
+    const res = await fetchWithAuth(`/api/v1/schedules/days/${dayId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update workout day');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async assignExercise(
+    dayId: string,
+    payload: AssignExercisePayload,
+  ): Promise<WorkoutDayExerciseDto> {
+    const res = await fetchWithAuth(`/api/v1/schedules/days/${dayId}/exercises`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to assign exercise to workout day');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async batchAssignExercises(
+    dayId: string,
+    payload: BatchAssignExercisesPayload,
+  ): Promise<WorkoutDayExerciseDto[]> {
+    const res = await fetchWithAuth(`/api/v1/schedules/days/${dayId}/batch-exercises`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to assign exercises to workout day');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updateAssignedExercise(
+    assignedId: string,
+    payload: UpdateAssignedExercisePayload,
+  ): Promise<WorkoutDayExerciseDto> {
+    const res = await fetchWithAuth(`/api/v1/schedules/assigned-exercises/${assignedId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update assigned exercise');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async removeAssignedExercise(assignedId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetchWithAuth(`/api/v1/schedules/assigned-exercises/${assignedId}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to remove assigned exercise');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async reorderDayExercises(
+    dayId: string,
+    payload: ReorderDayExercisesPayload,
+  ): Promise<{ success: boolean; updatedCount: number }> {
+    const res = await fetchWithAuth(`/api/v1/schedules/days/${dayId}/reorder`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to reorder exercises');
+    }
+
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async resetToDefault(): Promise<WorkoutScheduleDto> {
+    const res = await fetchWithAuth('/api/v1/schedules/reset-default', {
+      method: 'POST',
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to reset schedule to default');
     }
 
     const data = await res.json();

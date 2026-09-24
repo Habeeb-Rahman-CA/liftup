@@ -7,6 +7,7 @@ import { HealthModule } from './health/health.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
+import { SchedulesModule } from './schedules/schedules.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ExercisesModule } from './exercises/exercises.module.js';
     AuthModule,
     UsersModule,
     ExercisesModule,
+    SchedulesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

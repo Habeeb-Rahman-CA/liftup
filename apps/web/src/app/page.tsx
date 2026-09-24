@@ -31,11 +31,11 @@ export default function WelcomePage() {
       {/* Background Visual with Dark Minimalist Gradient */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/hero-bg.jpg"
+          src="/hajime-hero-bg.jpg"
           alt="LiftUp Background"
           fill
           priority
-          className="object-cover object-center opacity-75 sm:opacity-90"
+          className="object-cover object-center opacity-50 sm:opacity-90"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-zinc-950/40" />
       </div>
