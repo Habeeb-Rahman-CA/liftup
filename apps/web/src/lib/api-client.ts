@@ -20,6 +20,10 @@ import type {
   StartWorkoutSessionPayload,
   UpdateWorkoutSessionPayload,
   CompleteWorkoutSessionPayload,
+  SkipWorkoutSessionPayload,
+  LogRestDayPayload,
+  WorkoutHistoryQueryParams,
+  WorkoutHistoryResponseDto,
   AddExerciseToSessionPayload,
   CreateSetLogPayload,
   UpdateSetLogPayload,
@@ -388,11 +392,47 @@ export const sessionsApi = {
     return data.data || data;
   },
 
+  async skip(payload: SkipWorkoutSessionPayload): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth('/api/v1/sessions/skip', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to skip workout session');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async logRest(payload: LogRestDayPayload): Promise<WorkoutSessionDto> {
+    const res = await fetchWithAuth('/api/v1/sessions/rest', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to log rest day');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
   async getHistory(
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<PaginatedResult<WorkoutSessionDto>> {
-    const res = await fetchWithAuth(`/api/v1/sessions/history?page=${page}&limit=${limit}`);
+    paramsOrPage: WorkoutHistoryQueryParams | number = 1,
+    limitArg: number = 20,
+  ): Promise<WorkoutHistoryResponseDto> {
+    const params: WorkoutHistoryQueryParams =
+      typeof paramsOrPage === 'number' ? { page: paramsOrPage, limit: limitArg } : paramsOrPage;
+
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.limit) searchParams.set('limit', String(params.limit));
+    if (params.status && params.status !== 'ALL') searchParams.set('status', params.status);
+    if (params.search) searchParams.set('search', params.search);
+
+    const qs = searchParams.toString();
+    const res = await fetchWithAuth(`/api/v1/sessions/history${qs ? `?${qs}` : ''}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to load workout history');

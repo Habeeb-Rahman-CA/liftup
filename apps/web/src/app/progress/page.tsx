@@ -128,14 +128,6 @@ export default function ProgressPage() {
     <div className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-400">
-            <TrendingUp className="h-4 w-4" />
-          </span>
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-emerald-400">
-            Phase 6 • Progression
-          </span>
-        </div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
           Progression & Insights
         </h1>

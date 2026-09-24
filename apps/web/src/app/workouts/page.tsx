@@ -207,25 +207,14 @@ export default function WorkoutsPage() {
   return (
     <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20">
       {/* Top Header */}
-      <div className="flex items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400 shrink-0">
-            <CalendarDays className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-lg font-semibold tracking-tight text-zinc-100">
-                Weekly Schedule
-              </h1>
-              <Badge className="bg-emerald-950 text-emerald-300 border-emerald-800 text-[10px] font-normal">
-                {schedule?.name || 'Weekly Split'}
-              </Badge>
-            </div>
-            <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
-              {weeklyStats.workoutDays} Workout Days • {weeklyStats.restDays} Rest Days •{' '}
-              {weeklyStats.totalExercises} Assigned Exercises
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
+            Weekly Schedule
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+            7-day split routines, exercise assignments, rest days, and target sets &amp; reps.
+          </p>
         </div>
       </div>
 

@@ -5,25 +5,20 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useActiveWorkout } from '@/context/active-workout-context';
-import { schedulesApi } from '@/lib/api-client';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { schedulesApi, sessionsApi } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { SkipWorkoutModal } from '@/components/workouts/skip-workout-modal';
+import { LogRestModal } from '@/components/workouts/log-rest-modal';
 import {
-  User,
-  ShieldCheck,
-  Globe,
-  Calendar,
-  CalendarDays,
   Dumbbell,
-  LogOut,
   CheckCircle2,
-  KeyRound,
   ArrowRight,
   BedDouble,
   Clock,
-  Sparkles,
   Play,
+  AlertCircle,
+  FileText,
 } from 'lucide-react';
 import type { TodayWorkoutDto } from '@liftup/types';
 
@@ -31,10 +26,42 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, token, logout, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { activeSession, startWorkout } = useActiveWorkout();
   const [todayData, setTodayData] = useState<TodayWorkoutDto | null>(null);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
+  const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [restModalOpen, setRestModalOpen] = useState(false);
+
+  const refreshTodayData = async () => {
+    try {
+      const data = await schedulesApi.getTodayWorkout();
+      setTodayData(data);
+    } catch (err) {
+      console.error('Failed to reload today workout:', err);
+    }
+  };
+
+  const handleSkipToday = async (data: {
+    skipReason: string;
+    note?: string;
+    workoutDayId?: string;
+  }) => {
+    await sessionsApi.skip({
+      workoutDayId: data.workoutDayId || todayData?.today?.id,
+      skipReason: data.skipReason,
+      note: data.note,
+    });
+    await refreshTodayData();
+  };
+
+  const handleLogRestToday = async (data: { note?: string; workoutDayId?: string }) => {
+    await sessionsApi.logRest({
+      workoutDayId: data.workoutDayId || todayData?.today?.id,
+      note: data.note,
+    });
+    await refreshTodayData();
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -92,50 +119,15 @@ export default function DashboardPage() {
     );
   }
 
-  const memberSinceFormatted = new Date(user.createdAt).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
   return (
     <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20">
-      {/* Top Banner / Welcome */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-200 font-medium text-base sm:text-lg uppercase shrink-0">
-            {user.name ? user.name.charAt(0) : user.email.charAt(0)}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <h1 className="text-base sm:text-xl font-medium tracking-tight text-zinc-100 truncate">
-                Welcome, {user.name || user.email.split('@')[0]}
-              </h1>
-              <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-normal">
-                {user.role}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-zinc-800 text-zinc-400 text-[10px] font-normal"
-              >
-                <ShieldCheck className="h-3 w-3 mr-1 text-emerald-500" />
-                Active
-              </Badge>
-            </div>
-            <p className="text-[11px] sm:text-xs text-zinc-500 mt-0.5 truncate">{user.email}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 pt-1 sm:pt-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={logout}
-            className="w-full sm:w-auto border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs h-8 rounded-xl"
-          >
-            <LogOut className="h-3.5 w-3.5 mr-1.5" />
-            Sign Out
-          </Button>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+            Overview of your daily training and workouts.
+          </p>
         </div>
       </div>
 
@@ -148,7 +140,11 @@ export default function DashboardPage() {
               <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
                 {todayData?.completedToday
-                  ? "Today's Completed Workout"
+                  ? todayData.completedToday.status === 'SKIPPED'
+                    ? "Today's Status: Skipped"
+                    : todayData.completedToday.status === 'REST'
+                      ? "Today's Status: Rest Day"
+                      : "Today's Completed Workout"
                   : "Today's Workout Spotlight"}
               </span>
             </div>
@@ -158,123 +154,209 @@ export default function DashboardPage() {
           </div>
 
           {todayData?.completedToday ? (
-            /* COMPLETED WORKOUT DETAILED VIEW */
-            <div className="space-y-3.5 animate-in fade-in duration-200">
-              {/* Header */}
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
-                      {todayData.completedToday.name || "Today's Workout"}
-                    </h2>
-                    <Badge className="bg-emerald-950 text-emerald-300 border-emerald-700 text-[10px] font-medium gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Completed Today
-                    </Badge>
-                  </div>
-                  {todayData.completedToday.note && (
-                    <p className="text-xs text-zinc-400 mt-1 max-w-xl italic">
-                      &ldquo;{todayData.completedToday.note}&rdquo;
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link href="/workouts">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
-                      title="View Schedule"
-                    >
-                      <span>Schedule</span>
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Metric Quick Stats Strip */}
-              <div className="grid grid-cols-3 gap-2 py-2 border-y border-zinc-800/80 text-center">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
-                    Duration
-                  </p>
-                  <p className="text-xs sm:text-sm font-mono font-bold text-zinc-100">
-                    {completedStats?.durationMinutes} mins
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
-                    Volume Lifted
-                  </p>
-                  <p className="text-xs sm:text-sm font-mono font-bold text-emerald-300">
-                    {completedStats?.volume.toLocaleString()} kg
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
-                    Sets Done
-                  </p>
-                  <p className="text-xs sm:text-sm font-mono font-bold text-zinc-100">
-                    {completedStats?.completedSetsCount} sets
-                  </p>
-                </div>
-              </div>
-
-              {/* Details of What Was Done (Exercise & Sets Breakdown) */}
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono">
-                  What You Accomplished Today ({todayData.completedToday.exerciseLogs?.length || 0}{' '}
-                  Exercises)
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {todayData.completedToday.exerciseLogs?.map((log, idx) => {
-                    const completedSets = log.setLogs?.filter(s => s.completed) || [];
-                    return (
-                      <div
-                        key={log.id}
-                        className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="font-semibold text-xs text-zinc-100 truncate">
-                            {idx + 1}. {log.exercise?.name || 'Exercise'}
-                          </span>
-                          <span className="text-[9px] uppercase font-mono text-zinc-500 shrink-0">
-                            {log.exercise?.category}
-                          </span>
-                        </div>
-
-                        {/* Set breakdown chips */}
-                        <div className="flex flex-wrap gap-1">
-                          {completedSets.length === 0 ? (
-                            <span className="text-[10px] text-zinc-500 italic">No sets logged</span>
-                          ) : (
-                            completedSets.map((s, sIdx) => (
-                              <span
-                                key={s.id}
-                                className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
-                                  s.type === 'WARMUP'
-                                    ? 'bg-amber-950/50 text-amber-300 border-amber-800/60'
-                                    : 'bg-zinc-900 text-emerald-300 border-zinc-800'
-                                }`}
-                              >
-                                {s.type === 'WARMUP' ? 'W: ' : `${sIdx + 1}: `}
-                                {s.weight !== null && s.weight !== undefined
-                                  ? `${s.weight}kg × `
-                                  : ''}
-                                {s.reps || 0}r
-                              </span>
-                            ))
-                          )}
-                        </div>
+            todayData.completedToday.status === 'SKIPPED' ? (
+              /* SKIPPED WORKOUT VIEW */
+              <div className="space-y-3.5 animate-in fade-in duration-200">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-950/80 border border-amber-800/80 text-amber-400 mt-0.5">
+                      <AlertCircle className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
+                          {todayData.completedToday.name || "Today's Workout"}
+                        </h2>
+                        <Badge className="bg-amber-950 text-amber-300 border-amber-800 text-[10px] font-bold">
+                          Skipped Today
+                        </Badge>
                       </div>
-                    );
-                  })}
+                      {todayData.completedToday.skipReason && (
+                        <p className="text-xs font-mono text-amber-400 mt-1 font-semibold">
+                          Reason: {todayData.completedToday.skipReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link href="/history">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                      >
+                        <span>History</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                {todayData.completedToday.note && (
+                  <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/60 flex items-start gap-2 text-xs text-zinc-300">
+                    <FileText className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="font-semibold text-zinc-200">Note:</strong>{' '}
+                      {todayData.completedToday.note}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : todayData.completedToday.status === 'REST' ? (
+              /* REST DAY VIEW */
+              <div className="space-y-3.5 animate-in fade-in duration-200">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-950/80 border border-purple-800/80 text-purple-400 mt-0.5">
+                      <BedDouble className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
+                          {todayData.completedToday.name || 'Rest Day'}
+                        </h2>
+                        <Badge className="bg-purple-950 text-purple-300 border-purple-800 text-[10px] font-bold">
+                          Rest Day Logged
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Recovery logged for today. Rest well!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link href="/history">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                      >
+                        <span>History</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                {todayData.completedToday.note && (
+                  <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/60 flex items-start gap-2 text-xs text-zinc-300">
+                    <FileText className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="font-semibold text-zinc-200">Recovery:</strong>{' '}
+                      {todayData.completedToday.note}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* COMPLETED WORKOUT DETAILED VIEW */
+              <div className="space-y-3.5 animate-in fade-in duration-200">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg sm:text-xl font-bold text-zinc-100">
+                        {todayData.completedToday.name || "Today's Workout"}
+                      </h2>
+                      <Badge className="bg-emerald-950 text-emerald-300 border-emerald-700 text-[10px] font-medium gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Completed Today
+                      </Badge>
+                    </div>
+                    {todayData.completedToday.note && (
+                      <p className="text-xs text-zinc-400 mt-1 max-w-xl italic">
+                        &ldquo;{todayData.completedToday.note}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Metric Quick Stats Strip */}
+                <div className="grid grid-cols-3 gap-2 py-2 border-y border-zinc-800/80 text-center">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
+                      Duration
+                    </p>
+                    <p className="text-xs sm:text-sm font-mono font-bold text-zinc-100">
+                      {completedStats?.durationMinutes} mins
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
+                      Volume Lifted
+                    </p>
+                    <p className="text-xs sm:text-sm font-mono font-bold text-emerald-300">
+                      {completedStats?.volume.toLocaleString()} kg
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-zinc-500 font-medium uppercase font-mono">
+                      Sets Done
+                    </p>
+                    <p className="text-xs sm:text-sm font-mono font-bold text-zinc-100">
+                      {completedStats?.completedSetsCount} sets
+                    </p>
+                  </div>
+                </div>
+
+                {/* Details of What Was Done (Exercise & Sets Breakdown) */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono">
+                    What You Accomplished Today (
+                    {todayData.completedToday.exerciseLogs?.length || 0} Exercises)
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {todayData.completedToday.exerciseLogs?.map((log, idx) => {
+                      const completedSets = log.setLogs?.filter(s => s.completed) || [];
+                      return (
+                        <div
+                          key={log.id}
+                          className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="font-semibold text-xs text-zinc-100 truncate">
+                              {idx + 1}. {log.exercise?.name || 'Exercise'}
+                            </span>
+                            <span className="text-[9px] uppercase font-mono text-zinc-500 shrink-0">
+                              {log.exercise?.category}
+                            </span>
+                          </div>
+
+                          {/* Set breakdown chips */}
+                          <div className="flex flex-wrap gap-1">
+                            {completedSets.length === 0 ? (
+                              <span className="text-[10px] text-zinc-500 italic">
+                                No sets logged
+                              </span>
+                            ) : (
+                              completedSets.map((s, sIdx) => (
+                                <span
+                                  key={s.id}
+                                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                                    s.type === 'WARMUP'
+                                      ? 'bg-amber-950/50 text-amber-300 border-amber-800/60'
+                                      : 'bg-zinc-900 text-emerald-300 border-zinc-800'
+                                  }`}
+                                >
+                                  {s.type === 'WARMUP' ? 'W: ' : `${sIdx + 1}: `}
+                                  {s.weight !== null && s.weight !== undefined
+                                    ? `${s.weight}kg × `
+                                    : ''}
+                                  {s.reps || 0}r
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )
           ) : todayData?.today ? (
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -302,7 +384,33 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  {!todayData.today.isRestDay && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSkipModalOpen(true)}
+                        className="border-amber-900/60 bg-amber-950/30 hover:bg-amber-900/50 text-amber-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                        title="Skip Today's Workout"
+                      >
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <span>Skip</span>
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setRestModalOpen(true)}
+                        className="border-purple-900/60 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                        title="Log Today as Rest Day"
+                      >
+                        <BedDouble className="h-3.5 w-3.5" />
+                        <span>Rest</span>
+                      </Button>
+                    </>
+                  )}
+
                   {!todayData.today.isRestDay &&
                     (todayData.today.exercises?.length || 0) > 0 &&
                     (activeSession ? (
@@ -445,152 +553,23 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Grid Content: Quick Action Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-        {/* Workout Schedules Card */}
-        <Card className="bg-zinc-900 border-zinc-800 text-zinc-100 rounded-2xl">
-          <CardHeader className="pb-2.5 sm:pb-3 p-4 sm:p-5">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs sm:text-sm font-semibold flex items-center gap-2 text-zinc-200">
-                <CalendarDays className="h-4 w-4 text-emerald-500" />
-                Workout Scheduling
-              </CardTitle>
-              <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-normal">
-                Phase 3 Live
-              </Badge>
-            </div>
-            <CardDescription className="text-zinc-500 text-[11px] sm:text-xs">
-              7-Day split routines, exercise assignments, rest days, and target sets &amp; reps.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-xs p-4 pt-0 sm:p-5 sm:pt-0">
-            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">
-              <span className="text-zinc-200 font-medium block">Standard 7-Day Split:</span>
-              Monday Chest &amp; Triceps • Tuesday Back &amp; Biceps • Wednesday Shoulders • Friday
-              Legs • Saturday Core
-            </div>
-            <Link href="/workouts" className="block">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-emerald-400 text-xs h-8 rounded-xl font-medium justify-between px-3"
-              >
-                <span>Manage 7-Day Schedule</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {/* Skip Workout Modal */}
+      <SkipWorkoutModal
+        isOpen={skipModalOpen}
+        workoutTitle={todayData?.today?.name || 'Workout Session'}
+        workoutDayId={todayData?.today?.id}
+        onClose={() => setSkipModalOpen(false)}
+        onSkip={handleSkipToday}
+      />
 
-        {/* Exercise Library Card */}
-        <Card className="bg-zinc-900 border-zinc-800 text-zinc-100 rounded-2xl">
-          <CardHeader className="pb-2.5 sm:pb-3 p-4 sm:p-5">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs sm:text-sm font-semibold flex items-center gap-2 text-zinc-200">
-                <Dumbbell className="h-4 w-4 text-emerald-500" />
-                Exercise Library
-              </CardTitle>
-              <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-normal">
-                21 Exercises Seeded
-              </Badge>
-            </div>
-            <CardDescription className="text-zinc-500 text-[11px] sm:text-xs">
-              Master movement catalog across Chest, Back, Shoulders, Legs, Arms, and Core.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-xs p-4 pt-0 sm:p-5 sm:pt-0">
-            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">
-              <span className="text-zinc-200 font-medium block">Catalog Management:</span>
-              CRUD movements, target sets/reps ranges, muscle category filtering, active toggles.
-            </div>
-            <Link href="/exercises" className="block">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-emerald-400 text-xs h-8 rounded-xl font-medium justify-between px-3"
-              >
-                <span>Open Exercise Catalog</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* User Identity Card */}
-        <Card className="bg-zinc-900 border-zinc-800 text-zinc-100 rounded-2xl">
-          <CardHeader className="pb-2.5 sm:pb-3 p-4 sm:p-5">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs sm:text-sm font-semibold flex items-center gap-2 text-zinc-200">
-                <User className="h-4 w-4 text-emerald-500" />
-                Account Profile
-              </CardTitle>
-              <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-normal">
-                Verified
-              </Badge>
-            </div>
-            <CardDescription className="text-zinc-500 text-[11px] sm:text-xs">
-              Personal settings and identity
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2.5 text-xs p-4 pt-0 sm:p-5 sm:pt-0">
-            <div>
-              <span className="text-zinc-500 block text-[11px]">Email Address</span>
-              <span className="font-mono text-zinc-200 break-all">{user.email}</span>
-            </div>
-            <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
-              <span className="text-zinc-500 flex items-center gap-1 text-[11px]">
-                <Globe className="h-3 w-3 text-zinc-500" />
-                Timezone
-              </span>
-              <span className="font-mono text-zinc-300">{user.timezone || 'UTC'}</span>
-            </div>
-            <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
-              <span className="text-zinc-500 flex items-center gap-1 text-[11px]">
-                <Calendar className="h-3 w-3 text-zinc-500" />
-                Member Since
-              </span>
-              <span className="text-zinc-300">{memberSinceFormatted}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security & Token Info */}
-        <Card className="bg-zinc-900 border-zinc-800 text-zinc-100 rounded-2xl">
-          <CardHeader className="pb-2.5 sm:pb-3 p-4 sm:p-5">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs sm:text-sm font-semibold flex items-center gap-2 text-zinc-200">
-                <KeyRound className="h-4 w-4 text-emerald-500" />
-                Session &amp; Security
-              </CardTitle>
-              <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-normal">
-                Encrypted
-              </Badge>
-            </div>
-            <CardDescription className="text-zinc-500 text-[11px] sm:text-xs">
-              JWT bearer token and session validity
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2.5 text-xs p-4 pt-0 sm:p-5 sm:pt-0">
-            <div>
-              <span className="text-zinc-500 block text-[11px]">Session Status</span>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span className="text-emerald-400 text-xs font-medium">Active (Protected)</span>
-              </div>
-            </div>
-            <div className="pt-2 border-t border-zinc-800">
-              <span className="text-zinc-500 block text-[11px]">Refresh Token Rotation</span>
-              <span className="text-zinc-300">Enabled (30 Days)</span>
-            </div>
-            <div className="pt-2 border-t border-zinc-800">
-              <span className="text-zinc-500 block text-[11px]">Authorization Bearer</span>
-              <code className="text-[10px] text-zinc-400 font-mono bg-zinc-950 px-2 py-1 rounded block truncate mt-1 border border-zinc-800">
-                Bearer {token ? `${token.slice(0, 18)}...` : 'Active'}
-              </code>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Log Rest Day Modal */}
+      <LogRestModal
+        isOpen={restModalOpen}
+        dayTitle={todayData?.today?.name || 'Rest Day'}
+        workoutDayId={todayData?.today?.id}
+        onClose={() => setRestModalOpen(false)}
+        onLogRest={handleLogRestToday}
+      />
     </main>
   );
 }

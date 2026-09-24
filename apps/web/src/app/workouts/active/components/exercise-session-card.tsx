@@ -260,7 +260,7 @@ export function ExerciseSessionCard({
         </div>
       </div>
 
-      {/* PHASE 5: LAST PERFORMANCE CARD */}
+      {/* PREVIOUS SESSION PERFORMANCE CARD */}
       {hasPreviousData && (
         <div className="bg-zinc-950/80 border-b border-zinc-800/80 px-3.5 py-3 sm:px-4 space-y-2.5">
           {/* Header Row */}

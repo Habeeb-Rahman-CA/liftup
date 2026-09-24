@@ -246,7 +246,7 @@ export class SchedulesService {
     const completedSessionToday = await this.prisma.workoutSession.findFirst({
       where: {
         userId,
-        status: 'COMPLETED',
+        status: { in: ['COMPLETED', 'SKIPPED', 'REST'] },
         OR: [
           { endedAt: { gte: startOfToday } },
           { startedAt: { gte: startOfToday } },

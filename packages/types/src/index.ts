@@ -288,6 +288,41 @@ export interface CompleteWorkoutSessionPayload {
   durationMinutes?: number;
 }
 
+export type SkipReasonType = 'Lack of sleep' | 'Feeling unwell' | 'Busy' | 'Recovery' | 'Other';
+
+export interface SkipWorkoutSessionPayload {
+  workoutDayId?: string;
+  sessionId?: string;
+  skipReason: string;
+  note?: string | null;
+}
+
+export interface LogRestDayPayload {
+  workoutDayId?: string;
+  note?: string | null;
+}
+
+export interface WorkoutHistoryQueryParams {
+  page?: number;
+  limit?: number;
+  status?: 'ALL' | 'COMPLETED' | 'SKIPPED' | 'REST';
+  search?: string;
+}
+
+export interface WorkoutHistorySummaryDto {
+  totalCount: number;
+  completedCount: number;
+  skippedCount: number;
+  restCount: number;
+  totalVolume: number;
+  totalSets: number;
+  avgDurationMinutes: number;
+}
+
+export interface WorkoutHistoryResponseDto extends PaginatedResult<WorkoutSessionDto> {
+  summary: WorkoutHistorySummaryDto;
+}
+
 export interface AddExerciseToSessionPayload {
   exerciseId: string;
   order?: number;

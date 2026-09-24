@@ -203,20 +203,15 @@ export default function ExercisesPage() {
         </div>
       )}
 
-      {/* Top Header Card */}
-      <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-zinc-900 border border-zinc-800">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-emerald-950 border border-emerald-800 text-emerald-400">
-            <Dumbbell className="h-4 w-4" />
-          </div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-base sm:text-lg font-bold tracking-tight text-zinc-100">
-              Exercise Library
-            </h1>
-            <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] font-mono px-1.5 py-0">
-              {totalCount || exercises.length}
-            </Badge>
-          </div>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
+            Exercise Library
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+            Browse and manage movements, muscle groups, and default target reps.
+          </p>
         </div>
       </div>
 

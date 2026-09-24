@@ -11,6 +11,9 @@ import { CompleteSessionDto } from './dto/complete-session.dto.js';
 import { AddExerciseLogDto } from './dto/add-exercise-log.dto.js';
 import { CreateSetLogDto } from './dto/create-set-log.dto.js';
 import { UpdateSetLogDto } from './dto/update-set-log.dto.js';
+import { SkipSessionDto } from './dto/skip-session.dto.js';
+import { LogRestDto } from './dto/log-rest.dto.js';
+import { QueryHistoryDto } from './dto/query-history.dto.js';
 import { WorkoutSessionStatus, SetType } from '@prisma/client';
 import type {
   WorkoutSessionDto,
@@ -18,7 +21,7 @@ import type {
   SetLogDto,
   PreviousExercisePerformanceDto,
   ExerciseHistoryItemDto,
-  PaginatedResult,
+  WorkoutHistoryResponseDto,
 } from '@liftup/types';
 
 @Injectable()
@@ -169,23 +172,69 @@ export class SessionsService {
   }
 
   /**
-   * List paginated workout history for current user
+   * List paginated workout history for current user with status and search filtering (Phase 7)
    */
   async getHistory(
     userId: string,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<PaginatedResult<WorkoutSessionDto>> {
-    const pageNumber = Math.max(1, page);
-    const take = Math.min(100, Math.max(1, limit));
+    query?: QueryHistoryDto,
+  ): Promise<WorkoutHistoryResponseDto> {
+    const pageNumber = Math.max(1, query?.page || 1);
+    const take = Math.min(100, Math.max(1, query?.limit || 20));
     const skip = (pageNumber - 1) * take;
 
-    const [total, sessions] = await Promise.all([
-      this.prisma.workoutSession.count({
-        where: { userId, status: WorkoutSessionStatus.COMPLETED },
-      }),
+    const statusFilter = (query?.status || 'ALL').toUpperCase();
+    const searchFilter = query?.search?.trim();
+
+    // Determine status condition
+    let statusWhere: any = {
+      in: [
+        WorkoutSessionStatus.COMPLETED,
+        WorkoutSessionStatus.SKIPPED,
+        WorkoutSessionStatus.REST,
+      ],
+    };
+
+    if (statusFilter === 'COMPLETED') {
+      statusWhere = WorkoutSessionStatus.COMPLETED;
+    } else if (statusFilter === 'SKIPPED') {
+      statusWhere = WorkoutSessionStatus.SKIPPED;
+    } else if (statusFilter === 'REST') {
+      statusWhere = WorkoutSessionStatus.REST;
+    }
+
+    const whereClause: any = {
+      userId,
+      status: statusWhere,
+    };
+
+    if (searchFilter) {
+      whereClause.OR = [
+        { name: { contains: searchFilter, mode: 'insensitive' } },
+        { note: { contains: searchFilter, mode: 'insensitive' } },
+        { skipReason: { contains: searchFilter, mode: 'insensitive' } },
+        {
+          exerciseLogs: {
+            some: {
+              exercise: {
+                name: { contains: searchFilter, mode: 'insensitive' },
+              },
+            },
+          },
+        },
+      ];
+    }
+
+    const [
+      total,
+      sessions,
+      completedCount,
+      skippedCount,
+      restCount,
+      completedSessionsForStats,
+    ] = await Promise.all([
+      this.prisma.workoutSession.count({ where: whereClause }),
       this.prisma.workoutSession.findMany({
-        where: { userId, status: WorkoutSessionStatus.COMPLETED },
+        where: whereClause,
         orderBy: { startedAt: 'desc' },
         skip,
         take,
@@ -201,12 +250,68 @@ export class SessionsService {
           },
         },
       }),
+      this.prisma.workoutSession.count({
+        where: { userId, status: WorkoutSessionStatus.COMPLETED },
+      }),
+      this.prisma.workoutSession.count({
+        where: { userId, status: WorkoutSessionStatus.SKIPPED },
+      }),
+      this.prisma.workoutSession.count({
+        where: { userId, status: WorkoutSessionStatus.REST },
+      }),
+      this.prisma.workoutSession.findMany({
+        where: { userId, status: WorkoutSessionStatus.COMPLETED },
+        include: {
+          exerciseLogs: {
+            include: {
+              setLogs: true,
+            },
+          },
+        },
+      }),
     ]);
+
+    // Aggregate statistics across completed workouts
+    let totalVolume = 0;
+    let totalSets = 0;
+    let totalDuration = 0;
+    let sessionsWithDuration = 0;
+
+    for (const sess of completedSessionsForStats) {
+      if (sess.durationMinutes && sess.durationMinutes > 0) {
+        totalDuration += sess.durationMinutes;
+        sessionsWithDuration++;
+      }
+      for (const el of sess.exerciseLogs) {
+        for (const s of el.setLogs) {
+          if (s.completed) {
+            totalSets++;
+            if (s.weight && s.reps) {
+              totalVolume += Number(s.weight) * s.reps;
+            }
+          }
+        }
+      }
+    }
+
+    const avgDurationMinutes =
+      sessionsWithDuration > 0
+        ? Math.round(totalDuration / sessionsWithDuration)
+        : 0;
 
     const totalPages = Math.ceil(total / take) || 1;
 
     return {
       items: sessions.map(this.formatSession),
+      summary: {
+        totalCount: completedCount + skippedCount + restCount,
+        completedCount,
+        skippedCount,
+        restCount,
+        totalVolume: Math.round(totalVolume * 10) / 10,
+        totalSets,
+        avgDurationMinutes,
+      },
       meta: {
         total,
         page: pageNumber,
@@ -216,6 +321,175 @@ export class SessionsService {
         hasPreviousPage: pageNumber > 1,
       },
     };
+  }
+
+  /**
+   * Skip a workout with reason and optional note (Phase 7)
+   */
+  async skipSession(
+    userId: string,
+    dto: SkipSessionDto,
+  ): Promise<WorkoutSessionDto> {
+    const now = new Date();
+
+    // 1. If explicit sessionId is passed (e.g. aborting active session)
+    if (dto.sessionId) {
+      const session = await this.prisma.workoutSession.findUnique({
+        where: { id: dto.sessionId },
+      });
+      if (!session || session.userId !== userId) {
+        throw new NotFoundException('Workout session not found');
+      }
+
+      const updated = await this.prisma.workoutSession.update({
+        where: { id: dto.sessionId },
+        data: {
+          status: WorkoutSessionStatus.SKIPPED,
+          skipReason: dto.skipReason.trim(),
+          note: dto.note?.trim() || null,
+          endedAt: now,
+          durationMinutes: session.startedAt
+            ? Math.max(
+                1,
+                Math.round(
+                  (now.getTime() - new Date(session.startedAt).getTime()) /
+                    60000,
+                ),
+              )
+            : 0,
+        },
+        include: {
+          exerciseLogs: {
+            orderBy: { order: 'asc' },
+            include: {
+              exercise: true,
+              setLogs: {
+                orderBy: { setNumber: 'asc' },
+              },
+            },
+          },
+        },
+      });
+
+      return this.formatSession(updated);
+    }
+
+    // 2. If workoutDayId is passed, check for existing active session or resolve name
+    let sessionName = 'Skipped Workout';
+    if (dto.workoutDayId) {
+      const workoutDay = await this.prisma.workoutDay.findUnique({
+        where: { id: dto.workoutDayId },
+      });
+      if (workoutDay) {
+        sessionName = workoutDay.name;
+      }
+
+      const activeSession = await this.prisma.workoutSession.findFirst({
+        where: {
+          userId,
+          workoutDayId: dto.workoutDayId,
+          status: WorkoutSessionStatus.IN_PROGRESS,
+        },
+      });
+
+      if (activeSession) {
+        const updated = await this.prisma.workoutSession.update({
+          where: { id: activeSession.id },
+          data: {
+            status: WorkoutSessionStatus.SKIPPED,
+            skipReason: dto.skipReason.trim(),
+            note: dto.note?.trim() || null,
+            endedAt: now,
+          },
+          include: {
+            exerciseLogs: {
+              orderBy: { order: 'asc' },
+              include: {
+                exercise: true,
+                setLogs: {
+                  orderBy: { setNumber: 'asc' },
+                },
+              },
+            },
+          },
+        });
+        return this.formatSession(updated);
+      }
+    }
+
+    // 3. Create fresh skipped workout session record
+    const created = await this.prisma.workoutSession.create({
+      data: {
+        userId,
+        workoutDayId: dto.workoutDayId || null,
+        name: sessionName,
+        status: WorkoutSessionStatus.SKIPPED,
+        skipReason: dto.skipReason.trim(),
+        note: dto.note?.trim() || null,
+        startedAt: now,
+        endedAt: now,
+        durationMinutes: 0,
+      },
+      include: {
+        exerciseLogs: {
+          orderBy: { order: 'asc' },
+          include: {
+            exercise: true,
+            setLogs: {
+              orderBy: { setNumber: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    return this.formatSession(created);
+  }
+
+  /**
+   * Log a rest day with optional recovery note (Phase 7)
+   */
+  async logRestDay(
+    userId: string,
+    dto: LogRestDto,
+  ): Promise<WorkoutSessionDto> {
+    const now = new Date();
+    let sessionName = 'Rest Day';
+
+    if (dto.workoutDayId) {
+      const workoutDay = await this.prisma.workoutDay.findUnique({
+        where: { id: dto.workoutDayId },
+      });
+      if (workoutDay) {
+        sessionName = workoutDay.name;
+      }
+    }
+
+    const created = await this.prisma.workoutSession.create({
+      data: {
+        userId,
+        workoutDayId: dto.workoutDayId || null,
+        name: sessionName,
+        status: WorkoutSessionStatus.REST,
+        note: dto.note?.trim() || null,
+        startedAt: now,
+        endedAt: now,
+        durationMinutes: 0,
+      },
+      include: {
+        exerciseLogs: {
+          orderBy: { order: 'asc' },
+          include: {
+            exercise: true,
+            setLogs: {
+              orderBy: { setNumber: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    return this.formatSession(created);
   }
 
   /**

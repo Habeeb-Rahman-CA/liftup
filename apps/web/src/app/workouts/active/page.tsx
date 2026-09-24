@@ -12,6 +12,7 @@ import { ExerciseSessionCard } from './components/exercise-session-card';
 import { FinishWorkoutModal } from './components/finish-workout-modal';
 import { AddSessionExerciseModal } from './components/add-session-exercise-modal';
 import { RestTimer } from './components/rest-timer';
+import { SkipWorkoutModal } from '@/components/workouts/skip-workout-modal';
 import {
   Clock,
   CheckCircle2,
@@ -24,6 +25,7 @@ import {
   Dumbbell,
   Timer,
   Flame,
+  AlertCircle,
 } from 'lucide-react';
 import type { WorkoutSessionDto, SetLogDto, SetType } from '@liftup/types';
 
@@ -46,6 +48,7 @@ export default function ActiveWorkoutPage() {
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [restTimerOpen, setRestTimerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -209,6 +212,17 @@ export default function ActiveWorkoutPage() {
     }
   };
 
+  const handleSkipActiveWorkout = async (data: { skipReason: string; note?: string }) => {
+    if (!activeSession) return;
+    await sessionsApi.skip({
+      sessionId: activeSession.id,
+      skipReason: data.skipReason,
+      note: data.note,
+    });
+    setActiveSession(null);
+    router.push('/history');
+  };
+
   if (activeLoading || authLoading) {
     return (
       <div className="flex-1 min-h-[80vh] flex items-center justify-center p-4">
@@ -314,8 +328,20 @@ export default function ActiveWorkoutPage() {
           </div>
         </div>
 
-        {/* Right Actions: Discard & Finish */}
+        {/* Right Actions: Skip, Discard & Finish */}
         <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setSkipModalOpen(true)}
+            className="h-8 px-2 rounded-xl text-zinc-400 hover:text-amber-300 hover:bg-zinc-900 text-xs font-mono gap-1"
+            title="Skip / Abort with reason"
+          >
+            <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Skip</span>
+          </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -438,6 +464,15 @@ export default function ActiveWorkoutPage() {
         isOpen={restTimerOpen}
         onClose={() => setRestTimerOpen(false)}
         initialSeconds={90}
+      />
+
+      {/* Skip Workout Modal */}
+      <SkipWorkoutModal
+        isOpen={skipModalOpen}
+        workoutTitle={activeSession.name || 'Workout Session'}
+        sessionId={activeSession.id}
+        onClose={() => setSkipModalOpen(false)}
+        onSkip={handleSkipActiveWorkout}
       />
     </main>
   );

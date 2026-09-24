@@ -25,6 +25,9 @@ import { CompleteSessionDto } from './dto/complete-session.dto.js';
 import { AddExerciseLogDto } from './dto/add-exercise-log.dto.js';
 import { CreateSetLogDto } from './dto/create-set-log.dto.js';
 import { UpdateSetLogDto } from './dto/update-set-log.dto.js';
+import { SkipSessionDto } from './dto/skip-session.dto.js';
+import { LogRestDto } from './dto/log-rest.dto.js';
+import { QueryHistoryDto } from './dto/query-history.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type {
@@ -32,7 +35,7 @@ import type {
   SetLogDto,
   PreviousExercisePerformanceDto,
   ExerciseHistoryItemDto,
-  PaginatedResult,
+  WorkoutHistoryResponseDto,
 } from '@liftup/types';
 
 @ApiTags('Workout Sessions')
@@ -67,20 +70,54 @@ export class SessionsController {
     return this.sessionsService.startSession(userId, dto);
   }
 
+  @Post('skip')
+  @ApiOperation({
+    summary: 'Skip a workout session with reason and optional note (Phase 7)',
+  })
+  @SwaggerApiResponse({
+    status: 201,
+    description: 'Workout session marked as SKIPPED',
+  })
+  async skipSession(
+    @CurrentUser('id') userId: string,
+    @Body() dto: SkipSessionDto,
+  ): Promise<WorkoutSessionDto> {
+    return this.sessionsService.skipSession(userId, dto);
+  }
+
+  @Post(':id/skip')
+  @ApiOperation({ summary: 'Skip a specific active workout session' })
+  async skipSessionById(
+    @CurrentUser('id') userId: string,
+    @Param('id') id: string,
+    @Body() dto: SkipSessionDto,
+  ): Promise<WorkoutSessionDto> {
+    return this.sessionsService.skipSession(userId, { ...dto, sessionId: id });
+  }
+
+  @Post('rest')
+  @ApiOperation({ summary: 'Log a rest day with optional note (Phase 7)' })
+  @SwaggerApiResponse({
+    status: 201,
+    description: 'Rest day logged',
+  })
+  async logRestDay(
+    @CurrentUser('id') userId: string,
+    @Body() dto: LogRestDto,
+  ): Promise<WorkoutSessionDto> {
+    return this.sessionsService.logRestDay(userId, dto);
+  }
+
   @Get('history')
-  @ApiOperation({ summary: 'Get paginated completed workout session history' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOperation({
+    summary:
+      'Get paginated workout history with status and search filters (Phase 7)',
+  })
   async getHistory(
     @CurrentUser('id') userId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ): Promise<PaginatedResult<WorkoutSessionDto>> {
-    return this.sessionsService.getHistory(
-      userId,
-      page ? Number(page) : 1,
-      limit ? Number(limit) : 20,
-    );
+    @Query() query: QueryHistoryDto,
+  ): Promise<WorkoutHistoryResponseDto> {
+    return this.sessionsService.getHistory(userId, query);
   }
 
   @Get('previous-performance/:exerciseId')
