@@ -62,11 +62,14 @@ export function notifyNetworkState(
 }
 
 export function OfflineSyncIndicator() {
+  const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<SyncStatus>(syncEngine.getStatus());
   const [showSyncedBanner, setShowSyncedBanner] = useState(false);
   const [transientMessage, setTransientMessage] = useState<TransientNetworkMessage | null>(null);
 
   useEffect(() => {
+    setMounted(true);
+
     const unsubscribe = syncEngine.subscribe(newStatus => {
       setStatus(newStatus);
       if (newStatus.state === 'synced') {
@@ -79,6 +82,14 @@ export function OfflineSyncIndicator() {
     const handleNetworkMessage = (e: Event) => {
       const customEvent = e as CustomEvent<TransientNetworkMessage>;
       if (customEvent.detail) {
+        // Only show transient message if not a redundant offline message while online
+        if (
+          customEvent.detail.type === 'offline' &&
+          typeof navigator !== 'undefined' &&
+          navigator.onLine
+        ) {
+          return;
+        }
         setTransientMessage(customEvent.detail);
         const timer = setTimeout(() => setTransientMessage(null), 4500);
         return () => clearTimeout(timer);
@@ -93,12 +104,31 @@ export function OfflineSyncIndicator() {
     };
   }, []);
 
-  // 1. Transient toast message (Timeout, Server Error, Explicit Warning)
-  if (transientMessage && status.isOnline) {
+  if (!mounted) {
+    return null;
+  }
+
+  const isActuallyOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
+
+  // 1. Persistent Offline Banner ONLY when genuinely disconnected
+  if (isActuallyOffline) {
+    return (
+      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-950/90 border border-amber-600/40 text-amber-200 text-xs font-medium shadow-lg shadow-black/50 backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
+        <WifiOff className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+        <span>No internet &bull; Workout saved locally</span>
+        {status.pendingCount > 0 && (
+          <span className="px-1.5 py-0.5 rounded-full bg-amber-800/80 text-[10px] font-bold text-amber-100">
+            {status.pendingCount} queued
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // 2. Transient toast message (Timeout, Server Error, Explicit Warning) when online
+  if (transientMessage && !isActuallyOffline) {
     const getIcon = () => {
       switch (transientMessage.type) {
-        case 'offline':
-          return <WifiOff className="h-4 w-4 text-amber-400 shrink-0" />;
         case 'timeout':
           return <Clock className="h-4 w-4 text-amber-400 shrink-0" />;
         case 'server_error':
@@ -133,21 +163,6 @@ export function OfflineSyncIndicator() {
         >
           <X className="h-3.5 w-3.5" />
         </button>
-      </div>
-    );
-  }
-
-  // 2. Persistent Offline Banner (When device has no internet)
-  if (!status.isOnline || status.state === 'offline') {
-    return (
-      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-950/90 border border-amber-600/40 text-amber-200 text-xs font-medium shadow-lg shadow-black/50 backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
-        <WifiOff className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
-        <span>No internet &bull; Workout saved locally</span>
-        {status.pendingCount > 0 && (
-          <span className="px-1.5 py-0.5 rounded-full bg-amber-800/80 text-[10px] font-bold text-amber-100">
-            {status.pendingCount} queued
-          </span>
-        )}
       </div>
     );
   }

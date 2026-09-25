@@ -13,6 +13,12 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  // In-memory cache to avoid querying PostgreSQL on every single API request
+  private static userCache = new Map<
+    string,
+    { user: UserProfile; expiresAt: number }
+  >();
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
@@ -26,7 +32,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  public static invalidateUserCache(userId: string) {
+    JwtStrategy.userCache.delete(userId);
+  }
+
   async validate(payload: JwtPayload): Promise<UserProfile> {
+    const cached = JwtStrategy.userCache.get(payload.sub);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now) {
+      return cached.user;
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -45,10 +62,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User account no longer exists');
     }
 
-    return {
+    const profile: UserProfile = {
       ...user,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };
+
+    // Cache profile for 60 seconds
+    JwtStrategy.userCache.set(payload.sub, {
+      user: profile,
+      expiresAt: now + 60000,
+    });
+
+    return profile;
   }
 }

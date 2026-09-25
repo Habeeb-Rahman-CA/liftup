@@ -22,8 +22,8 @@ type StatusListener = (status: SyncStatus) => void;
 
 class SyncEngine {
   private status: SyncStatus = {
-    state: typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'idle',
-    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    state: 'idle',
+    isOnline: true,
     pendingCount: 0,
     lastSyncedAt: null,
     error: null,
@@ -34,6 +34,9 @@ class SyncEngine {
 
   constructor() {
     if (typeof window !== 'undefined') {
+      this.status.isOnline = navigator.onLine;
+      this.status.state = navigator.onLine ? 'idle' : 'offline';
+
       window.addEventListener('online', this.handleOnline);
       window.addEventListener('offline', this.handleOffline);
 
@@ -45,6 +48,9 @@ class SyncEngine {
   private handleOnline = () => {
     console.log('[SyncEngine] Network restored (online). Processing idempotent sync queue...');
     this.status.isOnline = true;
+    if (this.status.state === 'offline') {
+      this.status.state = 'idle';
+    }
     this.notify();
     this.processQueue();
   };
@@ -57,8 +63,14 @@ class SyncEngine {
   };
 
   public subscribe(listener: StatusListener): () => void {
+    if (typeof navigator !== 'undefined') {
+      this.status.isOnline = navigator.onLine;
+      if (navigator.onLine && this.status.state === 'offline') {
+        this.status.state = 'idle';
+      }
+    }
     this.listeners.add(listener);
-    listener(this.status);
+    listener({ ...this.status });
     return () => this.listeners.delete(listener);
   }
 

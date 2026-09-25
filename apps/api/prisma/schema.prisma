@@ -146,6 +146,7 @@ model Exercise {
   @@index([name])
   @@index([orderIndex])
   @@index([isActive])
+  @@index([category, isActive, orderIndex])
 }
 
 /// Actual logged workout performance instance
@@ -170,6 +171,9 @@ model WorkoutSession {
   @@index([workoutDayId])
   @@index([status])
   @@index([startedAt])
+  @@index([userId, status])
+  @@index([userId, startedAt(sort: Desc)])
+  @@index([userId, workoutDayId])
 }
 
 /// Exercise performed during a workout session
@@ -187,6 +191,7 @@ model ExerciseLog {
 
   @@index([workoutSessionId])
   @@index([exerciseId])
+  @@index([workoutSessionId, order])
 }
 
 /// Individual set metrics recorded within an exercise log
@@ -205,6 +210,7 @@ model SetLog {
   updatedAt     DateTime    @updatedAt
 
   @@index([exerciseLogId])
+  @@index([exerciseLogId, setNumber])
 }
 
 // -----------------------------------------------------------------------------
@@ -242,6 +248,7 @@ model Meal {
 
   @@index([mealPlanId])
   @@index([orderIndex])
+  @@index([mealPlanId, orderIndex])
 }
 
 /// Food item assigned to a meal with quantity and unit
@@ -263,6 +270,7 @@ model MealItem {
   @@index([mealId])
   @@index([foodId])
   @@index([orderIndex])
+  @@index([mealId, orderIndex])
 }
 
 /// Daily nutrition log instance tracking a single calendar day's eating
@@ -281,6 +289,7 @@ model MealDayLog {
   @@unique([userId, date])
   @@index([userId])
   @@index([date])
+  @@index([userId, date])
 }
 
 /// Log of an individual meal for a specific day
@@ -301,6 +310,7 @@ model MealLog {
 
   @@index([mealDayLogId])
   @@index([mealId])
+  @@index([mealDayLogId, orderIndex])
 }
 
 /// Log of an individual food item within a meal log
@@ -321,6 +331,7 @@ model MealItemLog {
 
   @@index([mealLogId])
   @@index([mealItemId])
+  @@index([mealLogId, orderIndex])
 }
 
 // -----------------------------------------------------------------------------
@@ -356,6 +367,7 @@ model Food {
   @@index([userId])
   @@index([isActive])
   @@index([orderIndex])
+  @@index([category, isActive, orderIndex])
 }
 
 // -----------------------------------------------------------------------------

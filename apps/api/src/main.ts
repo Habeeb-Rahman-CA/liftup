@@ -1,13 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import compression from 'compression';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor.js';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+
+  // Response Compression (gzip/brotli payload reduction)
+  app.use(compression());
+
+  // Graceful Shutdown & DB connection cleanup
+  app.enableShutdownHooks();
 
   // CORS
   app.enableCors({
@@ -35,7 +43,10 @@ async function bootstrap() {
   );
 
   // Global Interceptors & Error Filters
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new TimeoutInterceptor(15000),
+  );
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // Swagger / OpenAPI Setup
