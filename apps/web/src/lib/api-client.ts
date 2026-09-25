@@ -1,5 +1,13 @@
 import { getCookie, deleteCookie } from 'cookies-next';
 import { offlineDB } from './offline-db';
+import {
+  OfflineError,
+  TimeoutError,
+  UnauthorizedError,
+  ServerError,
+  ValidationError,
+  normalizeNetworkError,
+} from './network-errors';
 import type {
   UserProfile,
   UpdateProfilePayload,
@@ -90,23 +98,47 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
-async function fetchWithAuth(url: string, init?: RequestInit): Promise<Response> {
+async function fetchWithAuth(
+  url: string,
+  init?: RequestInit & { timeoutMs?: number },
+): Promise<Response> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new OfflineError();
+  }
+
   const headers = {
     ...getAuthHeaders(),
     ...(init?.headers || {}),
   };
 
-  const res = await fetch(url, {
-    ...init,
-    headers,
-  });
+  const timeoutMs = init?.timeoutMs || 10000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (res.status === 401) {
-    handleSessionExpired();
-    throw new Error('Your session has expired. Please log in again to continue.');
+  try {
+    const res = await fetch(url, {
+      ...init,
+      headers,
+      signal: init?.signal || controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (res.status === 401) {
+      handleSessionExpired();
+      throw new UnauthorizedError();
+    }
+
+    if (res.status >= 500) {
+      const err = await res.json().catch(() => ({}));
+      throw new ServerError(res.status, err.message || 'Server is temporarily unavailable');
+    }
+
+    return res;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    throw normalizeNetworkError(err);
   }
-
-  return res;
 }
 
 export const exercisesApi = {

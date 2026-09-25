@@ -7,6 +7,7 @@ import { useActiveWorkout } from '@/context/active-workout-context';
 import { sessionsApi } from '@/lib/api-client';
 import { offlineDB } from '@/lib/offline-db';
 import { syncEngine } from '@/lib/sync-engine';
+import { notifyNetworkState } from '@/components/pwa/offline-sync-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -280,6 +281,12 @@ export default function ActiveWorkoutPage() {
       setActiveSession(null);
       setFinishModalOpen(false);
       syncEngine.updatePendingCount();
+      notifyNetworkState({
+        type: 'offline',
+        title: 'Workout Completed (Offline)',
+        description: 'Your workout is saved locally and will sync automatically when reconnected.',
+        isSavedLocally: true,
+      });
       router.push('/dashboard?completed=true&offline=true');
     } finally {
       setIsFinishing(false);
