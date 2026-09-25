@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +17,7 @@ import type { AuthResponse, AuthTokens, UserProfile } from '@liftup/types';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly jwtSecret: string;
   private readonly jwtExpiresInSeconds: number = 60 * 60; // 1 hour
   private readonly refreshTokenExpiresInDays: number = 30; // 30 days
@@ -36,6 +38,9 @@ export class AuthService {
     });
 
     if (existingUser) {
+      this.logger.warn(
+        `Registration rejected: email already exists (${dto.email.toLowerCase().trim()})`,
+      );
       throw new ConflictException('An account with this email already exists');
     }
 
@@ -52,6 +57,9 @@ export class AuthService {
       },
     });
 
+    this.logger.log(
+      `Security Event: New user registered [ID: ${user.id}] [Email: ${user.email}]`,
+    );
     const tokens = await this.generateTokens(user.id, user.email, user.role);
 
     return {
@@ -66,14 +74,23 @@ export class AuthService {
     });
 
     if (!user) {
+      this.logger.warn(
+        `Auth Failure: Login attempt with non-existent email (${dto.email.toLowerCase().trim()})`,
+      );
       throw new UnauthorizedException('Invalid email or password');
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isMatch) {
+      this.logger.warn(
+        `Auth Failure: Invalid password for user [ID: ${user.id}] [Email: ${user.email}]`,
+      );
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    this.logger.log(
+      `Security Event: User logged in [ID: ${user.id}] [Email: ${user.email}]`,
+    );
     const tokens = await this.generateTokens(user.id, user.email, user.role);
 
     return {
@@ -89,11 +106,15 @@ export class AuthService {
     });
 
     if (!storedToken) {
+      this.logger.warn('Auth Failure: Invalid refresh token presented');
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
     if (storedToken.expiresAt < new Date()) {
       await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
+      this.logger.warn(
+        `Auth Failure: Expired refresh token for user [ID: ${storedToken.user.id}]`,
+      );
       throw new UnauthorizedException(
         'Refresh token has expired, please log in again',
       );
@@ -102,6 +123,9 @@ export class AuthService {
     // Rotate refresh token
     await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
 
+    this.logger.log(
+      `Security Event: Token rotated for user [ID: ${storedToken.user.id}]`,
+    );
     const tokens = await this.generateTokens(
       storedToken.user.id,
       storedToken.user.email,
@@ -128,6 +152,7 @@ export class AuthService {
       });
     }
 
+    this.logger.log(`Security Event: User logged out [ID: ${userId}]`);
     return { success: true };
   }
 
