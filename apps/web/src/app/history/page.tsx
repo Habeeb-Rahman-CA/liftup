@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
 import { sessionsApi, mealsApi } from '@/lib/api-client';
 import { ExerciseHistoryModal } from '@/components/exercises/exercise-history-modal';
+import { useDebounce } from '@/hooks/use-debounce';
 import type { WorkoutHistoryResponseDto, MealHistoryResponseDto } from '@liftup/types';
 
 type HistoryTab = 'WORKOUTS' | 'MEALS';
@@ -66,6 +67,7 @@ export default function HistoryPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
   const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState<{
     id: string;
@@ -131,7 +133,7 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!authLoading && user) {
       if (activeTab === 'WORKOUTS') {
-        fetchWorkoutHistory(page, statusFilter, searchQuery);
+        fetchWorkoutHistory(page, statusFilter, debouncedSearchQuery);
       } else {
         fetchMealHistory();
       }
@@ -142,7 +144,7 @@ export default function HistoryPage() {
     activeTab,
     page,
     statusFilter,
-    searchQuery,
+    debouncedSearchQuery,
     fetchWorkoutHistory,
     fetchMealHistory,
   ]);

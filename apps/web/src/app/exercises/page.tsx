@@ -31,6 +31,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { ExerciseHistoryInline } from '@/components/exercises/exercise-history-inline';
+import { useDebounce } from '@/hooks/use-debounce';
 import type {
   ExerciseDto,
   CreateExercisePayload,
@@ -61,6 +62,7 @@ function LibraryPageContent() {
   >([]);
   const [selectedExCategory, setSelectedExCategory] = useState('ALL');
   const [exSearchQuery, setExSearchQuery] = useState('');
+  const debouncedExSearchQuery = useDebounce(exSearchQuery, 300);
   const [exSortBy, setExSortBy] = useState<'name' | 'category' | 'orderIndex'>('orderIndex');
   const [exSortOrder, setExSortOrder] = useState<'asc' | 'desc'>('asc');
   const [expandedExId, setExpandedExId] = useState<string | null>(null);
@@ -79,6 +81,7 @@ function LibraryPageContent() {
   const [foodCategories, setFoodCategories] = useState<FoodCategoryStatsDto[]>([]);
   const [selectedFoodCategory, setSelectedFoodCategory] = useState<string>('ALL');
   const [foodSearchQuery, setFoodSearchQuery] = useState('');
+  const debouncedFoodSearchQuery = useDebounce(foodSearchQuery, 300);
   const [foodSortBy, setFoodSortBy] = useState<
     'orderIndex' | 'name' | 'calories' | 'protein' | 'carbs' | 'fat'
   >('orderIndex');
@@ -110,7 +113,7 @@ function LibraryPageContent() {
   };
 
   // ---------------------------------------------------------------------------
-  // EXERCISES DATA LOADER
+  // EXERCISES DATA LOADER (Debounced Server Query)
   // ---------------------------------------------------------------------------
   const loadExerciseData = useCallback(async () => {
     try {
@@ -118,7 +121,7 @@ function LibraryPageContent() {
       const [exData, catData] = await Promise.all([
         exercisesApi.getAll({
           category: selectedExCategory === 'ALL' ? undefined : selectedExCategory,
-          search: exSearchQuery.trim() || undefined,
+          search: debouncedExSearchQuery.trim() || undefined,
           sortBy: exSortBy,
           sortOrder: exSortOrder,
         }),
@@ -131,10 +134,10 @@ function LibraryPageContent() {
     } finally {
       setLoadingExercises(false);
     }
-  }, [selectedExCategory, exSearchQuery, exSortBy, exSortOrder]);
+  }, [selectedExCategory, debouncedExSearchQuery, exSortBy, exSortOrder]);
 
   // ---------------------------------------------------------------------------
-  // FOODS DATA LOADER
+  // FOODS DATA LOADER (Debounced Server Query)
   // ---------------------------------------------------------------------------
   const loadFoodData = useCallback(async () => {
     try {
@@ -142,7 +145,7 @@ function LibraryPageContent() {
       const [foodsData, catsData] = await Promise.all([
         foodsApi.getAll({
           category: selectedFoodCategory !== 'ALL' ? selectedFoodCategory : undefined,
-          search: foodSearchQuery.trim() || undefined,
+          search: debouncedFoodSearchQuery.trim() || undefined,
           sortBy: foodSortBy,
           sortOrder: foodSortOrder,
         }),
@@ -155,7 +158,7 @@ function LibraryPageContent() {
     } finally {
       setLoadingFoods(false);
     }
-  }, [selectedFoodCategory, foodSearchQuery, foodSortBy, foodSortOrder]);
+  }, [selectedFoodCategory, debouncedFoodSearchQuery, foodSortBy, foodSortOrder]);
 
   // Initial fetch for categories to ensure tab badges display accurate counts immediately
   useEffect(() => {
