@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { exercisesApi, foodsApi } from '@/lib/api-client';
@@ -43,7 +43,7 @@ import type {
 
 type LibraryTab = 'EXERCISES' | 'FOODS';
 
-export default function LibraryPage() {
+function LibraryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -1095,5 +1095,22 @@ export default function LibraryPage() {
         <Plus className="h-6 w-6" />
       </button>
     </main>
+  );
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 min-h-[calc(100dvh-4rem)] flex items-center justify-center p-8 bg-zinc-950">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-6 w-6 rounded-full text-emerald-500 animate-spin" />
+            <p className="text-xs text-zinc-500 font-mono">Loading library...</p>
+          </div>
+        </div>
+      }
+    >
+      <LibraryPageContent />
+    </Suspense>
   );
 }
