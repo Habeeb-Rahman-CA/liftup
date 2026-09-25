@@ -201,13 +201,13 @@ export default function HistoryPage() {
         <button
           type="button"
           onClick={() => setActiveTab('WORKOUTS')}
-          className={`py-2 text-xs font-mono font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+          className={`py-2.5 text-xs font-mono font-medium rounded-lg transition-all flex items-center justify-center gap-2 touch-manipulation active:scale-[0.99] ${
             activeTab === 'WORKOUTS'
               ? 'bg-emerald-950 text-emerald-300 border border-emerald-700 shadow-sm'
               : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
-          <Dumbbell className="h-3.5 w-3.5 shrink-0" />
+          <Dumbbell className="h-4 w-4 shrink-0" />
           <span>Workouts</span>
           {summary.completedCount > 0 && (
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-800 text-zinc-300 font-bold">
@@ -219,13 +219,13 @@ export default function HistoryPage() {
         <button
           type="button"
           onClick={() => setActiveTab('MEALS')}
-          className={`py-2 text-xs font-mono font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+          className={`py-2.5 text-xs font-mono font-medium rounded-lg transition-all flex items-center justify-center gap-2 touch-manipulation active:scale-[0.99] ${
             activeTab === 'MEALS'
               ? 'bg-emerald-950 text-emerald-300 border border-emerald-700 shadow-sm'
               : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
-          <UtensilsCrossed className="h-3.5 w-3.5 shrink-0" />
+          <UtensilsCrossed className="h-4 w-4 shrink-0" />
           <span>Meals</span>
           {mealHistoryData?.summary.perfectDaysCount ? (
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950 text-amber-300 border border-amber-800/80 font-bold">
@@ -279,7 +279,7 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => handleStatusTabChange('ALL')}
-                className={`py-1.5 px-2 rounded-lg text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-2 rounded-lg text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.99] ${
                   statusFilter === 'ALL'
                     ? 'bg-zinc-800 text-zinc-100 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
@@ -294,13 +294,13 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => handleStatusTabChange('COMPLETED')}
-                className={`py-1.5 px-2 rounded-lg text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-2 rounded-lg text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.99] ${
                   statusFilter === 'COMPLETED'
                     ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-800/80 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <CheckCircle2 className="h-3 w-3 text-emerald-400 hidden sm:inline" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 hidden sm:inline" />
                 <span>Done</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-950 text-emerald-400">
                   {summary.completedCount}
@@ -310,13 +310,13 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => handleStatusTabChange('SKIPPED')}
-                className={`py-1.5 px-2 rounded-lg text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-2 rounded-lg text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.99] ${
                   statusFilter === 'SKIPPED'
                     ? 'bg-amber-950/90 text-amber-300 border border-amber-800/80 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <AlertCircle className="h-3 w-3 text-amber-400 hidden sm:inline" />
+                <AlertCircle className="h-3.5 w-3.5 text-amber-400 hidden sm:inline" />
                 <span>Skipped</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-950 text-amber-400">
                   {summary.skippedCount}
@@ -665,9 +665,9 @@ export default function HistoryPage() {
                 size="sm"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={!workoutHistoryData.meta.hasPreviousPage || loadingWorkouts}
-                className="border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs h-8 gap-1"
+                className="border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs h-9 px-3 gap-1 touch-manipulation active:scale-95"
               >
-                <ChevronLeft className="h-3.5 w-3.5" />
+                <ChevronLeft className="h-4 w-4" />
                 <span>Previous</span>
               </Button>
 
@@ -680,10 +680,10 @@ export default function HistoryPage() {
                 size="sm"
                 onClick={() => setPage(p => p + 1)}
                 disabled={!workoutHistoryData.meta.hasNextPage || loadingWorkouts}
-                className="border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs h-8 gap-1"
+                className="border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs h-9 px-3 gap-1 touch-manipulation active:scale-95"
               >
                 <span>Next</span>
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           )}

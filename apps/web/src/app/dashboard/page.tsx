@@ -689,12 +689,18 @@ export default function DashboardPage() {
                     }`}
                   >
                     {/* Collapsible Card Header */}
-                    <div className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5">
+                    <div
+                      className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 cursor-pointer select-none"
+                      onClick={() => toggleMealExpand(meal.id)}
+                    >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <button
                           type="button"
-                          onClick={() => handleToggleMeal(meal.id)}
-                          className={`flex h-6 w-6 items-center justify-center rounded-lg border transition-colors shrink-0 ${
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleToggleMeal(meal.id);
+                          }}
+                          className={`flex h-8 w-8 items-center justify-center rounded-xl border transition-all shrink-0 touch-manipulation active:scale-95 ${
                             meal.completed
                               ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
                               : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
@@ -704,16 +710,13 @@ export default function DashboardPage() {
                           }
                         >
                           {meal.completed ? (
-                            <CheckCircle2 className="h-4 w-4 fill-emerald-950" />
+                            <CheckCircle2 className="h-4.5 w-4.5 fill-emerald-950" />
                           ) : (
-                            <Circle className="h-3.5 w-3.5" />
+                            <Circle className="h-4 w-4" />
                           )}
                         </button>
 
-                        <div
-                          className="min-w-0 cursor-pointer select-none"
-                          onClick={() => toggleMealExpand(meal.id)}
-                        >
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4
                               className={`text-xs sm:text-sm font-bold truncate ${
@@ -730,10 +733,8 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => toggleMealExpand(meal.id)}
-                          className="p-1 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850 transition-colors"
+                        <div
+                          className="h-8 w-8 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850 transition-colors touch-manipulation"
                           title={isExpanded ? 'Hide items' : 'View food items'}
                         >
                           {isExpanded ? (
@@ -741,7 +742,7 @@ export default function DashboardPage() {
                           ) : (
                             <ChevronDown className="h-4 w-4" />
                           )}
-                        </button>
+                        </div>
                       </div>
                     </div>
 
@@ -756,24 +757,24 @@ export default function DashboardPage() {
                             <div
                               key={item.id}
                               onClick={() => handleToggleItem(item.id)}
-                              className={`p-2 rounded-lg border cursor-pointer select-none transition-all flex items-center justify-between gap-2 ${
+                              className={`p-2.5 rounded-xl border cursor-pointer select-none transition-all flex items-center justify-between gap-2 touch-manipulation active:scale-[0.99] ${
                                 item.completed
                                   ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-200'
                                   : 'bg-zinc-950/80 border-zinc-800/80 text-zinc-200 hover:border-zinc-700'
                               }`}
                             >
-                              <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex items-center gap-2.5 min-w-0">
                                 <div
-                                  className={`flex h-4 w-4 items-center justify-center rounded border shrink-0 ${
+                                  className={`flex h-5 w-5 items-center justify-center rounded-md border shrink-0 ${
                                     item.completed
                                       ? 'bg-emerald-900 border-emerald-600 text-emerald-100'
                                       : 'bg-zinc-900 border-zinc-700 text-transparent'
                                   }`}
                                 >
-                                  <Check className="h-2.5 w-2.5" />
+                                  <Check className="h-3 w-3" />
                                 </div>
                                 <span
-                                  className={`text-[11px] font-medium truncate ${
+                                  className={`text-xs font-medium truncate ${
                                     item.completed ? 'line-through text-zinc-400' : 'text-zinc-200'
                                   }`}
                                 >
@@ -782,7 +783,7 @@ export default function DashboardPage() {
                               </div>
 
                               {item.displayQuantity && (
-                                <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 shrink-0">
+                                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 shrink-0">
                                   {item.displayQuantity}
                                 </span>
                               )}

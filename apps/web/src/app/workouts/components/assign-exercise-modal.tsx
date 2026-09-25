@@ -307,7 +307,7 @@ export function AssignExerciseModal({
                 {stagedList.map(item => (
                   <span
                     key={item.exercise.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/90 border border-emerald-800 text-emerald-200 text-[11px] shrink-0 whitespace-nowrap"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-800 text-emerald-200 text-[11px] shrink-0 whitespace-nowrap"
                   >
                     <span className="font-medium truncate max-w-[140px]">{item.exercise.name}</span>
                     <span className="text-[10px] font-mono text-emerald-400">
@@ -316,10 +316,10 @@ export function AssignExerciseModal({
                     <button
                       type="button"
                       onClick={() => handleUnstageExercise(item.exercise.id)}
-                      className="text-emerald-400 hover:text-red-300 ml-0.5"
+                      className="text-emerald-400 hover:text-red-300 ml-0.5 p-0.5 rounded touch-manipulation active:scale-95"
                       title="Remove"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </span>
                 ))}
@@ -347,7 +347,7 @@ export function AssignExerciseModal({
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors shrink-0 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors shrink-0 touch-manipulation active:scale-95 ${
                     selectedCategory === cat
                       ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                       : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
@@ -398,20 +398,20 @@ export function AssignExerciseModal({
                       {/* Exercise Header Card */}
                       <div
                         onClick={() => handleToggleConfigure(ex)}
-                        className="flex items-center justify-between p-2.5 cursor-pointer select-none"
+                        className="flex items-center justify-between p-3 cursor-pointer select-none touch-manipulation active:scale-[0.99] transition-transform"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
-                            className={`flex h-7 w-7 items-center justify-center rounded-lg shrink-0 border ${
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 border ${
                               isStaged
                                 ? 'bg-emerald-900 border-emerald-600 text-emerald-200'
                                 : 'bg-zinc-800 border-zinc-700 text-zinc-400'
                             }`}
                           >
                             {isStaged ? (
-                              <Check className="h-3.5 w-3.5" />
+                              <Check className="h-4 w-4" />
                             ) : (
-                              <Dumbbell className="h-3.5 w-3.5" />
+                              <Dumbbell className="h-4 w-4" />
                             )}
                           </div>
                           <div className="min-w-0">
@@ -438,13 +438,13 @@ export function AssignExerciseModal({
                             </Badge>
                           )}
 
-                          <button type="button" className="text-zinc-500 hover:text-zinc-300 p-0.5">
+                          <div className="text-zinc-500 p-1 flex items-center justify-center">
                             {isConfiguring ? (
-                              <ChevronUp className="h-3.5 w-3.5" />
+                              <ChevronUp className="h-4 w-4" />
                             ) : (
-                              <ChevronDown className="h-3.5 w-3.5" />
+                              <ChevronDown className="h-4 w-4" />
                             )}
-                          </button>
+                          </div>
                         </div>
                       </div>
 

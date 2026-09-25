@@ -284,7 +284,7 @@ export default function WorkoutsPage() {
 
                 {/* Right side controls */}
                 <div
-                  className="flex items-center gap-1.5 shrink-0"
+                  className="flex items-center gap-1 shrink-0"
                   onClick={e => e.stopPropagation()}
                 >
                   {/* Configure Day Settings */}
@@ -292,17 +292,17 @@ export default function WorkoutsPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => setEditDayModalDay(day)}
-                    className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 h-7 sm:h-8 w-7 sm:w-8 p-0 rounded-lg"
+                    className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 h-8.5 w-8.5 p-0 rounded-xl touch-manipulation active:scale-95"
                     title="Configure routine settings"
                   >
-                    <Settings className="h-3.5 w-3.5" />
+                    <Settings className="h-4 w-4" />
                   </Button>
 
                   {/* Expand/Collapse Chevron */}
                   <button
                     type="button"
                     onClick={() => toggleDayExpansion(day.id)}
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                    className="h-8.5 w-8.5 flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 touch-manipulation active:scale-95 transition-colors"
                   >
                     {isExpanded ? (
                       <ChevronUp className="h-4 w-4" />
@@ -350,9 +350,9 @@ export default function WorkoutsPage() {
                             <Button
                               size="sm"
                               onClick={() => startWorkout({ workoutDayId: day.id, name: day.name })}
-                              className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-7 px-2.5 rounded-lg gap-1 font-medium shadow-sm"
+                              className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8 px-3 rounded-xl gap-1 font-medium shadow-sm touch-manipulation active:scale-95"
                             >
-                              <Play className="h-3 w-3 fill-current" />
+                              <Play className="h-3.5 w-3.5 fill-current" />
                               <span>Start Workout</span>
                             </Button>
                           )}
@@ -360,7 +360,7 @@ export default function WorkoutsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => setAssignModalDay(day)}
-                            className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-300 text-xs h-7 px-2.5 rounded-lg gap-1"
+                            className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-300 text-xs h-8 px-3 rounded-xl gap-1 touch-manipulation active:scale-95"
                           >
                             <Plus className="h-3.5 w-3.5 text-emerald-400" />
                             <span>Add Exercise</span>
@@ -428,7 +428,7 @@ export default function WorkoutsPage() {
                                     type="button"
                                     disabled={idx === 0}
                                     onClick={() => handleMoveExercise(day, idx, 'up')}
-                                    className="p-1 rounded text-zinc-500 hover:text-zinc-200 disabled:opacity-20 transition-colors"
+                                    className="h-7 w-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 disabled:opacity-20 transition-colors touch-manipulation active:scale-95"
                                     title="Move up"
                                   >
                                     <ChevronUp className="h-3.5 w-3.5" />
@@ -437,7 +437,7 @@ export default function WorkoutsPage() {
                                     type="button"
                                     disabled={idx === exerciseCount - 1}
                                     onClick={() => handleMoveExercise(day, idx, 'down')}
-                                    className="p-1 rounded text-zinc-500 hover:text-zinc-200 disabled:opacity-20 transition-colors"
+                                    className="h-7 w-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 disabled:opacity-20 transition-colors touch-manipulation active:scale-95"
                                     title="Move down"
                                   >
                                     <ChevronDown className="h-3.5 w-3.5" />
@@ -453,7 +453,7 @@ export default function WorkoutsPage() {
                                       dayName: day.name,
                                     })
                                   }
-                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors touch-manipulation active:scale-95"
                                   title="Edit target sets & reps"
                                 >
                                   <Edit2 className="h-3.5 w-3.5" />
@@ -470,7 +470,7 @@ export default function WorkoutsPage() {
                                       dayName: day.name,
                                     });
                                   }}
-                                  className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors touch-manipulation active:scale-95"
                                   title="Remove from workout day"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
