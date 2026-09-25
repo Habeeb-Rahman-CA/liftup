@@ -441,7 +441,18 @@ export function ExerciseSessionCard({
                         set.weight !== null && set.weight !== undefined ? set.weight : ''
                       }
                       onFocus={e => e.target.select()}
+                      onChange={e => {
+                        const raw = e.target.value;
+                        const val = raw === '' ? null : parseFloat(raw);
+                        clearTimeout((e.target as any)._debounceTimer);
+                        (e.target as any)._debounceTimer = setTimeout(() => {
+                          if (val !== set.weight) {
+                            onUpdateSet(set.id, { weight: val });
+                          }
+                        }, 350);
+                      }}
                       onBlur={e => {
+                        clearTimeout((e.target as any)._debounceTimer);
                         const val = e.target.value === '' ? null : parseFloat(e.target.value);
                         if (val !== set.weight) {
                           onUpdateSet(set.id, { weight: val });
@@ -467,7 +478,18 @@ export function ExerciseSessionCard({
                       placeholder="0"
                       defaultValue={set.reps !== null && set.reps !== undefined ? set.reps : ''}
                       onFocus={e => e.target.select()}
+                      onChange={e => {
+                        const raw = e.target.value;
+                        const val = raw === '' ? null : parseInt(raw, 10);
+                        clearTimeout((e.target as any)._debounceTimer);
+                        (e.target as any)._debounceTimer = setTimeout(() => {
+                          if (val !== set.reps) {
+                            onUpdateSet(set.id, { reps: val });
+                          }
+                        }, 350);
+                      }}
                       onBlur={e => {
+                        clearTimeout((e.target as any)._debounceTimer);
                         const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
                         if (val !== set.reps) {
                           onUpdateSet(set.id, { reps: val });

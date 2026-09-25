@@ -66,6 +66,23 @@ export default function ActiveWorkoutPage() {
     }
   }, [activeSession]);
 
+  // Warn user before leaving or reloading page during an active workout
+  useEffect(() => {
+    if (!activeSession) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Standard browser confirmation prompt for active sessions
+      e.returnValue = 'You have an active workout in progress. Unsaved changes may be lost.';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [activeSession]);
+
   // Handle Session Title Edit Save
   const handleSaveTitle = async () => {
     if (!activeSession || !sessionTitle.trim()) return;

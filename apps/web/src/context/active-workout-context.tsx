@@ -54,6 +54,23 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     }
   }, [authLoading, refreshActiveSession]);
 
+  // Handle phone locking, tab switching, and app backgrounding/resume
+  useEffect(() => {
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible' && user) {
+        refreshActiveSession();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, [user, refreshActiveSession]);
+
   // Live timer interval calculation based on startedAt
   useEffect(() => {
     if (timerRef.current) {
