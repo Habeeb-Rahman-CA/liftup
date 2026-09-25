@@ -17,6 +17,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const isProduction = process.env.NODE_ENV === 'production';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = 'INTERNAL_SERVER_ERROR';
@@ -36,7 +37,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         details = body.error || body.message;
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      // Prisma known errors
+      // Prisma known client errors - sanitized for client safety
       switch (exception.code) {
         case 'P2002':
           status = HttpStatus.CONFLICT;
@@ -46,26 +47,38 @@ export class AllExceptionsFilter implements ExceptionFilter {
         case 'P2025':
           status = HttpStatus.NOT_FOUND;
           code = 'RECORD_NOT_FOUND';
-          message = (exception.meta?.cause as string) || 'Record not found';
+          message = 'The requested resource was not found';
+          break;
+        case 'P2003':
+          status = HttpStatus.BAD_REQUEST;
+          code = 'FOREIGN_KEY_CONSTRAINT_FAILED';
+          message = 'Related resource not found or invalid reference';
           break;
         default:
           status = HttpStatus.BAD_REQUEST;
-          code = `PRISMA_${exception.code}`;
-          message =
-            exception.message.split('\n').pop() || 'Database request failed';
+          code = 'DATABASE_OPERATION_FAILED';
+          message = isProduction
+            ? 'Unable to process database operation'
+            : exception.message.split('\n').pop() || 'Database request failed';
       }
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
       status = HttpStatus.BAD_REQUEST;
       code = 'DATABASE_VALIDATION_ERROR';
-      message = 'Invalid data provided to database operation';
+      message = 'Invalid data provided for database operation';
     } else if (exception instanceof Error) {
-      message = exception.message;
-      code = exception.name;
+      if (status >= 500 && isProduction) {
+        message = 'Internal server error';
+        code = 'INTERNAL_SERVER_ERROR';
+      } else {
+        message = exception.message;
+        code = exception.name;
+      }
     }
 
+    // Always log internal details securely on the server console
     if (status >= 500) {
       this.logger.error(
-        `[${request.method}] ${request.url} - ${status} ${code}: ${message}`,
+        `[${request.method}] ${request.url} - ${status} ${code}: ${exception instanceof Error ? exception.message : message}`,
         exception instanceof Error ? exception.stack : undefined,
       );
     } else {
@@ -74,13 +87,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    // Return sanitized payload to client without stack traces or sensitive internals
     response.status(status).json({
       success: false,
       statusCode: status,
       error: {
         code,
         message,
-        details,
+        details: isProduction && status >= 500 ? undefined : details,
       },
       path: request.url,
       timestamp: new Date().toISOString(),
