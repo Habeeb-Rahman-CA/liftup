@@ -1,6 +1,7 @@
 /**
  * LiftUp Offline Synchronization Engine
- * Processes the offline mutation queue in FIFO order upon network restoration.
+ * Processes the offline mutation queue in FIFO order upon network restoration with
+ * strict idempotency (clientOperationId) and automatic temp-ID remapping.
  */
 
 import { offlineDB, SyncQueueItem } from './offline-db';
@@ -42,7 +43,7 @@ class SyncEngine {
   }
 
   private handleOnline = () => {
-    console.log('[SyncEngine] Network restored (online). Starting sync queue processing...');
+    console.log('[SyncEngine] Network restored (online). Processing idempotent sync queue...');
     this.status.isOnline = true;
     this.notify();
     this.processQueue();
@@ -81,7 +82,7 @@ class SyncEngine {
   }
 
   /**
-   * Process all queued offline mutations in sequential order
+   * Process all queued offline mutations sequentially in FIFO order
    */
   public async processQueue(): Promise<void> {
     if (this.isProcessing) return;
@@ -110,7 +111,19 @@ class SyncEngine {
         if (!item.id) continue;
 
         try {
-          await this.executeSyncItem(item);
+          const resData = await this.executeSyncItem(item);
+
+          // If a set was created, remap any subsequent queue items using the tempId
+          if (
+            item.actionType === 'CREATE_SET' &&
+            item.targetEntityId &&
+            resData &&
+            resData.id &&
+            item.targetEntityId !== resData.id
+          ) {
+            await offlineDB.remapEntityIdInQueue(item.targetEntityId, resData.id);
+          }
+
           // Delete from IndexedDB queue on success
           await offlineDB.removeSyncQueueItem(item.id);
           this.status.pendingCount = Math.max(0, this.status.pendingCount - 1);
@@ -150,15 +163,21 @@ class SyncEngine {
     const token = getCookie(TOKEN_COOKIE_KEY) as string | undefined;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-Client-Operation-Id': item.clientOperationId,
+      'X-Idempotency-Key': item.clientOperationId,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const payloadWithOpId = item.payload
+      ? { ...item.payload, clientOperationId: item.clientOperationId }
+      : { clientOperationId: item.clientOperationId };
+
     const response = await fetch(item.endpoint, {
       method: item.method,
       headers,
-      body: item.payload ? JSON.stringify(item.payload) : undefined,
+      body: item.method !== 'DELETE' ? JSON.stringify(payloadWithOpId) : undefined,
     });
 
     if (!response.ok && response.status !== 404) {

@@ -1,14 +1,25 @@
 /**
  * LiftUp IndexedDB Database Layer
  * Provides persistent offline storage for Exercise Library, Food Library, Workout Schedules,
- * Active Session state, and an Offline Mutation Sync Queue.
+ * Active Session state, and an Idempotent Offline Mutation Sync Queue.
  */
 
 const DB_NAME = 'liftup_offline_db';
 const DB_VERSION = 1;
 
+/**
+ * Generates an idempotent, sortable client operation ID (e.g. "01K8XYZ...")
+ */
+export function generateClientOperationId(): string {
+  const time = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const random2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `01K8${time}${random}${random2}`;
+}
+
 export interface SyncQueueItem {
   id?: number;
+  clientOperationId: string;
   actionType:
     | 'CREATE_SET'
     | 'UPDATE_SET'
@@ -21,6 +32,7 @@ export interface SyncQueueItem {
   endpoint: string;
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   payload?: any;
+  targetEntityId?: string; // e.g. setId, sessionId, exerciseLogId
   timestamp: number;
   retryCount: number;
 }
@@ -58,7 +70,7 @@ class OfflineDB {
           db.createObjectStore('schedules', { keyPath: 'id' });
         }
 
-        // 4. Active Workout Session Store (Single Active Session key = 'active_session')
+        // 4. Active Workout Session Store
         if (!db.objectStoreNames.contains('active_workout')) {
           db.createObjectStore('active_workout', { keyPath: 'key' });
         }
@@ -70,6 +82,7 @@ class OfflineDB {
             autoIncrement: true,
           });
           queueStore.createIndex('timestamp', 'timestamp', { unique: false });
+          queueStore.createIndex('clientOperationId', 'clientOperationId', { unique: true });
         }
       };
 
@@ -226,15 +239,46 @@ class OfflineDB {
     }
   }
 
-  // 4. Sync Queue Operations
+  // 4. Sync Queue Operations with Deduplication & Coalescing
   async enqueueSyncItem(
-    item: Omit<SyncQueueItem, 'id' | 'timestamp' | 'retryCount'>,
+    item: Omit<SyncQueueItem, 'id' | 'timestamp' | 'retryCount' | 'clientOperationId'> & {
+      clientOperationId?: string;
+    },
   ): Promise<number> {
+    const clientOpId = item.clientOperationId || generateClientOperationId();
+    const existingQueue = await this.getSyncQueue();
+
+    // Coalescing: If updating the same entity (e.g. UPDATE_SET on same setId), merge payload
+    if (item.actionType === 'UPDATE_SET' && item.targetEntityId) {
+      const existingItem = existingQueue.find(
+        q => q.actionType === 'UPDATE_SET' && q.targetEntityId === item.targetEntityId,
+      );
+      if (existingItem && existingItem.id) {
+        existingItem.payload = { ...existingItem.payload, ...item.payload };
+        existingItem.timestamp = Date.now();
+        await this.put('sync_queue', existingItem);
+        return existingItem.id;
+      }
+    }
+
+    // Coalescing: If deleting a set that was created offline and never sent to server, remove creation from queue
+    if (item.actionType === 'DELETE_SET' && item.targetEntityId?.startsWith('temp_set_')) {
+      const createdItem = existingQueue.find(
+        q => q.actionType === 'CREATE_SET' && q.targetEntityId === item.targetEntityId,
+      );
+      if (createdItem && createdItem.id) {
+        await this.removeSyncQueueItem(createdItem.id);
+        return 0;
+      }
+    }
+
     const queueItem: SyncQueueItem = {
       ...item,
+      clientOperationId: clientOpId,
       timestamp: Date.now(),
       retryCount: 0,
     };
+
     const db = await this.getDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('sync_queue', 'readwrite');
@@ -256,6 +300,27 @@ class OfflineDB {
 
   async removeSyncQueueItem(id: number): Promise<void> {
     await this.delete('sync_queue', id);
+  }
+
+  /**
+   * Replaces temporary offline entity IDs (e.g. temp_set_123) with server assigned IDs in pending queue items
+   */
+  async remapEntityIdInQueue(tempId: string, serverId: string): Promise<void> {
+    const queue = await this.getSyncQueue();
+    for (const item of queue) {
+      let modified = false;
+      if (item.targetEntityId === tempId) {
+        item.targetEntityId = serverId;
+        modified = true;
+      }
+      if (item.endpoint.includes(tempId)) {
+        item.endpoint = item.endpoint.replace(tempId, serverId);
+        modified = true;
+      }
+      if (modified && item.id) {
+        await this.put('sync_queue', item);
+      }
+    }
   }
 
   async getQueueCount(): Promise<number> {

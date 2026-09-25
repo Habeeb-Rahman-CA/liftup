@@ -177,6 +177,7 @@ export default function ActiveWorkoutPage() {
         endpoint: `/api/v1/sessions/exercise-logs/${exerciseLogId}/sets`,
         method: 'POST',
         payload: { type },
+        targetEntityId: tempSet.id,
       });
       syncEngine.updatePendingCount();
     }
@@ -212,6 +213,7 @@ export default function ActiveWorkoutPage() {
         endpoint: `/api/v1/sessions/sets/${setId}`,
         method: 'PATCH',
         payload,
+        targetEntityId: setId,
       });
       syncEngine.updatePendingCount();
     }
@@ -243,6 +245,7 @@ export default function ActiveWorkoutPage() {
         actionType: 'DELETE_SET',
         endpoint: `/api/v1/sessions/sets/${setId}`,
         method: 'DELETE',
+        targetEntityId: setId,
       });
       syncEngine.updatePendingCount();
     }
@@ -271,6 +274,7 @@ export default function ActiveWorkoutPage() {
         endpoint: `/api/v1/sessions/${activeSession.id}/complete`,
         method: 'POST',
         payload: { note, durationMinutes },
+        targetEntityId: activeSession.id,
       });
       await offlineDB.clearActiveSession();
       setActiveSession(null);
