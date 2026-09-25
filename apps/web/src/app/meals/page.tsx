@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { UtensilsCrossed, Plus, Edit2, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { UtensilsCrossed, Plus, Edit2, Trash2, Sparkles, Loader2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -215,11 +215,10 @@ export default function MealsPage() {
                         setMealToEdit(meal);
                         setBuildMealModalOpen(true);
                       }}
-                      className="h-7 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg px-2 gap-1"
+                      className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg touch-manipulation active:scale-95"
                       title="Edit Meal & Add Foods"
                     >
-                      <Edit2 className="h-3 w-3" />
-                      <span>Edit</span>
+                      <Settings className="h-3.5 w-3.5" />
                     </Button>
                   </div>
 
@@ -463,7 +462,7 @@ export default function MealsPage() {
         type="button"
         onClick={() => setCreatePlanModalOpen(true)}
         aria-label="Create new plan"
-        className="fixed bottom-20 md:bottom-8 right-4 sm:right-6 z-40 h-13 w-13 rounded-full bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 flex items-center justify-center transition-transform active:scale-95 touch-manipulation cursor-pointer shadow-none"
+        className="fixed bottom-floating-safe md:bottom-8 right-4 sm:right-6 z-40 h-13 w-13 rounded-full bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 flex items-center justify-center transition-transform active:scale-95 touch-manipulation cursor-pointer shadow-lg shadow-black/80"
         title="Create New Plan"
       >
         <Plus className="h-6 w-6" />

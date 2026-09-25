@@ -240,13 +240,13 @@ export function AssignExerciseModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 overscroll-none touch-none animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-safe bg-black/80 overscroll-none touch-none animate-in fade-in duration-150"
       onClick={e => {
         if (e.target === e.currentTarget && !submitting) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-lg max-h-[92vh] flex flex-col bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 touch-auto"
+        className="relative w-full max-w-lg modal-safe-bounds flex flex-col bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 touch-auto"
         role="dialog"
         aria-modal="true"
         onClick={e => e.stopPropagation()}

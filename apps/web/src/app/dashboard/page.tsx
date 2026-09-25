@@ -486,18 +486,6 @@ export default function DashboardPage() {
                         <span>Start Workout</span>
                       </Button>
                     ))}
-
-                  <Link href="/workouts">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8.5 px-3 rounded-xl font-medium gap-1 touch-manipulation active:scale-95"
-                      title="View Schedule"
-                    >
-                      <span className="hidden sm:inline">Schedule</span>
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
                 </div>
               </div>
 

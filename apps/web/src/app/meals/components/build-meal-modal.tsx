@@ -295,8 +295,8 @@ export const BuildMealModal: React.FC<BuildMealModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl max-w-md w-full flex flex-col max-h-[90vh] shadow-2xl relative my-auto overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-safe bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl max-w-md w-full flex flex-col modal-safe-bounds shadow-2xl relative my-auto overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-zinc-800 bg-zinc-900/80 shrink-0">
           <div className="flex items-center gap-2.5">

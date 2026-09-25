@@ -108,9 +108,9 @@ export function SkipWorkoutModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-safe bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
       <div
-        className="w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150"
+        className="w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl overflow-hidden flex flex-col modal-safe-bounds animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}

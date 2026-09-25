@@ -22,7 +22,7 @@ export function ActiveWorkoutBar() {
   }
 
   return (
-    <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 z-40 max-w-lg mx-auto px-3 sm:px-4 pointer-events-none animate-in slide-in-from-bottom-3 duration-200">
+    <div className="fixed bottom-bar-offset sm:bottom-4 left-0 right-0 z-40 max-w-lg mx-auto px-3 sm:px-4 pointer-events-none animate-in slide-in-from-bottom-3 duration-200">
       <Link
         href="/workouts/active"
         className="pointer-events-auto flex items-center justify-between p-3 rounded-2xl bg-zinc-900/95 border border-emerald-500/50 shadow-xl shadow-black/80 backdrop-blur-md hover:border-emerald-400 transition-all group"
