@@ -501,6 +501,167 @@ export interface ProgressOverviewDto {
 }
 
 // -----------------------------------------------------------------------------
+// MEAL DOMAIN TYPES (PHASE 8)
+// -----------------------------------------------------------------------------
+
+export interface MealItemDto {
+  id: string;
+  mealId: string;
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  displayQuantity?: string | null;
+  orderIndex: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MealDto {
+  id: string;
+  mealPlanId: string;
+  name: string;
+  orderIndex: number;
+  time?: string | null;
+  items: MealItemDto[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MealPlanDto {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  meals: MealDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMealItemDto {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  displayQuantity?: string;
+  orderIndex?: number;
+}
+
+export interface UpdateMealItemDto {
+  name?: string;
+  quantity?: number;
+  unit?: string;
+  displayQuantity?: string;
+  orderIndex?: number;
+}
+
+export interface CreateMealDto {
+  name: string;
+  orderIndex?: number;
+  time?: string;
+  items?: CreateMealItemDto[];
+}
+
+export interface UpdateMealDto {
+  name?: string;
+  orderIndex?: number;
+  time?: string;
+}
+
+export interface CreateMealPlanDto {
+  name: string;
+  description?: string;
+  meals?: CreateMealDto[];
+}
+
+export interface UpdateMealPlanDto {
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface MealItemLogDto {
+  id: string;
+  mealLogId: string;
+  mealItemId?: string | null;
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  displayQuantity?: string | null;
+  completed: boolean;
+  orderIndex: number;
+}
+
+export interface MealLogDto {
+  id: string;
+  mealDayLogId: string;
+  mealId?: string | null;
+  name: string;
+  orderIndex: number;
+  completed: boolean;
+  completedAt?: string | null;
+  note?: string | null;
+  itemLogs: MealItemLogDto[];
+}
+
+export interface MealDayLogDto {
+  id: string;
+  userId: string;
+  mealPlanId?: string | null;
+  date: string;
+  dateFormatted?: string;
+  note?: string | null;
+  mealLogs: MealLogDto[];
+  totalMealsCount: number;
+  completedMealsCount: number;
+  completionPercentage: number;
+}
+
+export interface TodayMealsResponseDto {
+  todayLog: MealDayLogDto;
+  activePlan: MealPlanDto | null;
+  summary: {
+    totalMeals: number;
+    completedMeals: number;
+    totalItems: number;
+    completedItems: number;
+    completionRate: number;
+  };
+}
+
+export interface ToggleMealCompletionDto {
+  completed?: boolean;
+  note?: string;
+}
+
+export interface ToggleMealItemCompletionDto {
+  completed?: boolean;
+}
+
+export interface UpdateMealDayNoteDto {
+  note: string;
+}
+
+export interface MealHistoryDaySummaryDto {
+  id: string;
+  date: string;
+  dateFormatted: string;
+  totalMeals: number;
+  completedMeals: number;
+  completionPercentage: number;
+  note?: string | null;
+  mealLogs: MealLogDto[];
+}
+
+export interface MealHistoryResponseDto {
+  items: MealHistoryDaySummaryDto[];
+  summary: {
+    totalLoggedDays: number;
+    perfectDaysCount: number;
+    overallCompletionRate: number;
+  };
+}
+
+// -----------------------------------------------------------------------------
 // PAGINATION TYPES
 // -----------------------------------------------------------------------------
 export interface PaginationParams {

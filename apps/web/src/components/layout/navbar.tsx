@@ -6,7 +6,15 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Dumbbell, Calendar, History, TrendingUp } from 'lucide-react';
+import {
+  LayoutDashboard,
+  LogOut,
+  Dumbbell,
+  Calendar,
+  History,
+  TrendingUp,
+  UtensilsCrossed,
+} from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout, loading } = useAuth();
@@ -76,6 +84,21 @@ export const Navbar: React.FC = () => {
             >
               <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
               Exercises
+            </Button>
+          </Link>
+
+          <Link href="/meals" className="hidden sm:inline-flex">
+            <Button
+              variant={pathname.startsWith('/meals') ? 'default' : 'outline'}
+              size="sm"
+              className={
+                pathname.startsWith('/meals')
+                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
+              }
+            >
+              <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" />
+              Meals
             </Button>
           </Link>
 

@@ -1,9 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
-
 export const INITIAL_EXERCISES = [
-  // CHEST
   {
     name: 'Flat Bench Press',
     category: 'CHEST',
@@ -56,8 +53,6 @@ export const INITIAL_EXERCISES = [
     orderIndex: 4,
     isActive: true,
   },
-
-  // BACK
   {
     name: 'Lat Pulldowns',
     category: 'BACK',
@@ -97,8 +92,6 @@ export const INITIAL_EXERCISES = [
     orderIndex: 7,
     isActive: true,
   },
-
-  // SHOULDERS
   {
     name: 'Shoulder Press',
     category: 'SHOULDERS',
@@ -150,8 +143,6 @@ export const INITIAL_EXERCISES = [
     orderIndex: 11,
     isActive: true,
   },
-
-  // ARMS
   {
     name: 'Skull Crusher',
     category: 'ARMS',
@@ -191,8 +182,6 @@ export const INITIAL_EXERCISES = [
     orderIndex: 14,
     isActive: true,
   },
-
-  // LEGS
   {
     name: 'Squat',
     category: 'LEGS',
@@ -245,8 +234,6 @@ export const INITIAL_EXERCISES = [
     orderIndex: 18,
     isActive: true,
   },
-
-  // CORE
   {
     name: 'Leg Raises',
     category: 'CORE',
@@ -287,15 +274,182 @@ export const INITIAL_EXERCISES = [
     isActive: true,
   },
 ];
-
+export const INITIAL_MEAL_PLAN = {
+  name: 'Standard 4-Meal Plan',
+  description: 'Balanced muscle building & recovery daily nutrition plan',
+  meals: [
+    {
+      name: 'Meal 1',
+      orderIndex: 1,
+      items: [
+        {
+          name: 'Whole Egg',
+          quantity: 4,
+          unit: 'pcs',
+          displayQuantity: '4 Whole Egg',
+          orderIndex: 1,
+        },
+        {
+          name: 'Oats',
+          quantity: 40,
+          unit: 'g',
+          displayQuantity: '40g Oats',
+          orderIndex: 2,
+        },
+        {
+          name: 'Peanuts',
+          quantity: 10,
+          unit: 'g',
+          displayQuantity: '10g Peanuts',
+          orderIndex: 3,
+        },
+        {
+          name: 'Banana',
+          quantity: 100,
+          unit: 'g',
+          displayQuantity: '100g Banana',
+          orderIndex: 4,
+        },
+      ],
+    },
+    {
+      name: 'Meal 2',
+      orderIndex: 2,
+      items: [
+        {
+          name: 'Chicken Breast',
+          quantity: 150,
+          unit: 'g',
+          displayQuantity: '150g Chicken Breast',
+          orderIndex: 1,
+        },
+        {
+          name: 'Rice',
+          quantity: 50,
+          unit: 'g',
+          displayQuantity: '50g Rice',
+          orderIndex: 2,
+        },
+        {
+          name: 'Mixed Veg',
+          quantity: 150,
+          unit: 'g',
+          displayQuantity: '150g Mixed Veg',
+          orderIndex: 3,
+        },
+      ],
+    },
+    {
+      name: 'Meal 3',
+      orderIndex: 3,
+      items: [
+        {
+          name: 'Curd',
+          quantity: 150,
+          unit: 'g',
+          displayQuantity: '150g Curd',
+          orderIndex: 1,
+        },
+        {
+          name: 'Apple',
+          quantity: 50,
+          unit: 'g',
+          displayQuantity: '50g Apple',
+          orderIndex: 2,
+        },
+        {
+          name: 'Peanut Butter',
+          quantity: 10,
+          unit: 'g',
+          displayQuantity: '10g Peanut Butter',
+          orderIndex: 3,
+        },
+      ],
+    },
+    {
+      name: 'Meal 4',
+      orderIndex: 4,
+      items: [
+        {
+          name: 'Chicken Breast',
+          quantity: 150,
+          unit: 'g',
+          displayQuantity: '150g Chicken Breast',
+          orderIndex: 1,
+        },
+        {
+          name: 'Rotis/Chappati',
+          quantity: 2,
+          unit: 'pcs',
+          displayQuantity: '2 Rotis/Chappati',
+          orderIndex: 2,
+        },
+        {
+          name: 'Spinach',
+          quantity: 100,
+          unit: 'g',
+          displayQuantity: '100g Spinach',
+          orderIndex: 3,
+        },
+        {
+          name: 'Butter',
+          quantity: 5,
+          unit: 'g',
+          displayQuantity: '5g Butter',
+          orderIndex: 4,
+        },
+      ],
+    },
+  ],
+};
+async function seedMealPlans() {
+  console.log('Seeding initial 4-meal plan for users...');
+  const users = await prisma.user.findMany();
+  for (const user of users) {
+    const existingPlan = await prisma.mealPlan.findFirst({
+      where: { userId: user.id },
+      include: { meals: { include: { items: true } } },
+    });
+    if (!existingPlan) {
+      await prisma.mealPlan.create({
+        data: {
+          userId: user.id,
+          name: INITIAL_MEAL_PLAN.name,
+          description: INITIAL_MEAL_PLAN.description,
+          isActive: true,
+          meals: {
+            create: INITIAL_MEAL_PLAN.meals.map((m) => ({
+              name: m.name,
+              orderIndex: m.orderIndex,
+              items: {
+                create: m.items.map((it) => ({
+                  name: it.name,
+                  quantity: it.quantity,
+                  unit: it.unit,
+                  displayQuantity: it.displayQuantity,
+                  orderIndex: it.orderIndex,
+                })),
+              },
+            })),
+          },
+        },
+      });
+      console.log(
+        `[CREATED MEAL PLAN] Standard 4-Meal Plan for user ${user.email}`,
+      );
+    } else {
+      console.log(
+        `[SKIPPED] User ${user.email} already has meal plan: ${existingPlan.name}`,
+      );
+    }
+  }
+}
 async function main() {
   console.log('Seeding initial exercise library into database...');
-
   for (const exercise of INITIAL_EXERCISES) {
     const existing = await prisma.exercise.findFirst({
       where: { name: { equals: exercise.name, mode: 'insensitive' } },
     });
-
     if (existing) {
       await prisma.exercise.update({
         where: { id: existing.id },
@@ -318,13 +472,12 @@ async function main() {
       console.log(`[CREATED] ${exercise.name} (${exercise.category})`);
     }
   }
-
   const count = await prisma.exercise.count();
   console.log(
     `Successfully seeded exercise library! Total exercises in database: ${count}`,
   );
+  await seedMealPlans();
 }
-
 main()
   .catch((e) => {
     console.error('Seed error:', e);
@@ -333,3 +486,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+//# sourceMappingURL=seed.js.map

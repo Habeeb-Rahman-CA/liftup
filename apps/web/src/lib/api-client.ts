@@ -27,10 +27,27 @@ import type {
   AddExerciseToSessionPayload,
   CreateSetLogPayload,
   UpdateSetLogPayload,
-  PreviousExercisePerformanceDto,
-  ExerciseHistoryItemDto,
   ExerciseProgressionDto,
   ProgressOverviewDto,
+  PreviousExercisePerformanceDto,
+  ExerciseHistoryItemDto,
+  MealItemDto,
+  MealDto,
+  MealPlanDto,
+  CreateMealItemDto,
+  UpdateMealItemDto,
+  CreateMealDto,
+  UpdateMealDto,
+  CreateMealPlanDto,
+  UpdateMealPlanDto,
+  MealItemLogDto,
+  MealLogDto,
+  MealDayLogDto,
+  TodayMealsResponseDto,
+  ToggleMealCompletionDto,
+  ToggleMealItemCompletionDto,
+  UpdateMealDayNoteDto,
+  MealHistoryResponseDto,
   PaginatedResult,
 } from '@liftup/types';
 
@@ -584,6 +601,222 @@ export const progressionApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to load exercise progression');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+};
+
+export const mealsApi = {
+  async getToday(date?: string): Promise<TodayMealsResponseDto> {
+    const url = date ? `/api/v1/meals/today?date=${date}` : '/api/v1/meals/today';
+    const res = await fetchWithAuth(url, { cache: 'no-store' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to load today's meals");
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async toggleMeal(
+    mealLogId: string,
+    payload?: ToggleMealCompletionDto,
+  ): Promise<TodayMealsResponseDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/today/meal/${mealLogId}/toggle`, {
+      method: 'PATCH',
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to toggle meal completion');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async toggleItem(
+    itemLogId: string,
+    payload?: ToggleMealItemCompletionDto,
+  ): Promise<TodayMealsResponseDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/today/item/${itemLogId}/toggle`, {
+      method: 'PATCH',
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to toggle food item completion');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updateDayNote(date: string, note: string): Promise<TodayMealsResponseDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/today/note?date=${date}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ note }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update nutrition note');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getHistory(limit = 30): Promise<MealHistoryResponseDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/history?limit=${limit}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load meal history');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getPlans(): Promise<MealPlanDto[]> {
+    const res = await fetchWithAuth('/api/v1/meals/plans', { cache: 'no-store' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load meal plans');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getActivePlan(): Promise<MealPlanDto> {
+    const res = await fetchWithAuth('/api/v1/meals/plans/active', { cache: 'no-store' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load active meal plan');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async createPlan(payload: CreateMealPlanDto): Promise<MealPlanDto> {
+    const res = await fetchWithAuth('/api/v1/meals/plans', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to create meal plan');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updatePlan(planId: string, payload: UpdateMealPlanDto): Promise<MealPlanDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/plans/${planId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update meal plan');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async activatePlan(planId: string): Promise<MealPlanDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/plans/${planId}/activate`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to activate meal plan');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async deletePlan(planId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetchWithAuth(`/api/v1/meals/plans/${planId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to delete meal plan');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async addMeal(planId: string, payload: CreateMealDto): Promise<MealDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/plans/${planId}/meals`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to add meal');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updateMeal(mealId: string, payload: UpdateMealDto): Promise<MealDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/meals/${mealId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update meal');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async deleteMeal(mealId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetchWithAuth(`/api/v1/meals/meals/${mealId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to delete meal');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async addItem(mealId: string, payload: CreateMealItemDto): Promise<MealItemDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/meals/${mealId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to add food item');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updateItem(itemId: string, payload: UpdateMealItemDto): Promise<MealItemDto> {
+    const res = await fetchWithAuth(`/api/v1/meals/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update food item');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async deleteItem(itemId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetchWithAuth(`/api/v1/meals/items/${itemId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to remove food item');
     }
     const data = await res.json();
     return data.data || data;

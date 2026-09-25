@@ -10,6 +10,7 @@ import { ExercisesModule } from './exercises/exercises.module.js';
 import { SchedulesModule } from './schedules/schedules.module.js';
 import { SessionsModule } from './sessions/sessions.module.js';
 import { ProgressionModule } from './progression/progression.module.js';
+import { MealsModule } from './meals/meals.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ProgressionModule } from './progression/progression.module.js';
     SchedulesModule,
     SessionsModule,
     ProgressionModule,
+    MealsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

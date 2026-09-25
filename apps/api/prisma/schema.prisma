@@ -49,6 +49,10 @@ model User {
   // Workout Relations
   workoutSchedules WorkoutSchedule[]
   workoutSessions  WorkoutSession[]
+
+  // Meal Domain Relations
+  mealPlans        MealPlan[]
+  mealDayLogs      MealDayLog[]
 }
 
 model RefreshToken {
@@ -200,6 +204,119 @@ model SetLog {
   updatedAt     DateTime    @updatedAt
 
   @@index([exerciseLogId])
+}
+
+// -----------------------------------------------------------------------------
+// MEAL DOMAIN
+// -----------------------------------------------------------------------------
+
+/// Reusable meal plan template (e.g. "Standard 4-Meal Plan")
+model MealPlan {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isActive    Boolean       @default(true)
+  meals       Meal[]
+  dayLogs     MealDayLog[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+/// Planned meal within a meal plan (e.g., "Meal 1", "Meal 2", "Meal 3", "Meal 4")
+model Meal {
+  id          String     @id @default(cuid())
+  mealPlanId  String
+  mealPlan    MealPlan   @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  name        String
+  orderIndex  Int        @default(0)
+  time        String?    // e.g. "08:00 AM"
+  items       MealItem[]
+  mealLogs    MealLog[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([mealPlanId])
+  @@index([orderIndex])
+}
+
+/// Food item assigned to a meal with quantity and unit
+model MealItem {
+  id              String        @id @default(cuid())
+  mealId          String
+  meal            Meal          @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  name            String        // e.g., "Whole Egg", "Chicken Breast", "Oats", "Rice"
+  quantity        Float?        // e.g., 4, 150, 40, 10
+  unit            String?       // e.g., "pcs", "g", "ml", "Rotis/Chappati"
+  displayQuantity String?       // e.g., "4 Whole Egg", "150g Chicken Breast"
+  orderIndex      Int           @default(0)
+  itemLogs        MealItemLog[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([mealId])
+  @@index([orderIndex])
+}
+
+/// Daily nutrition log instance tracking a single calendar day's eating
+model MealDayLog {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlanId String?
+  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  date       String    // "YYYY-MM-DD" e.g., "2026-09-25"
+  note       String?
+  mealLogs   MealLog[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+/// Log of an individual meal for a specific day
+model MealLog {
+  id           String        @id @default(cuid())
+  mealDayLogId String
+  mealDayLog   MealDayLog    @relation(fields: [mealDayLogId], references: [id], onDelete: Cascade)
+  mealId       String?
+  meal         Meal?         @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  name         String        // e.g., "Meal 1"
+  orderIndex   Int           @default(0)
+  completed    Boolean       @default(false)
+  completedAt  DateTime?
+  note         String?
+  itemLogs     MealItemLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([mealDayLogId])
+  @@index([mealId])
+}
+
+/// Log of an individual food item within a meal log
+model MealItemLog {
+  id              String    @id @default(cuid())
+  mealLogId       String
+  mealLog         MealLog   @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+  mealItemId      String?
+  mealItem        MealItem? @relation(fields: [mealItemId], references: [id], onDelete: SetNull)
+  name            String
+  quantity        Float?
+  unit            String?
+  displayQuantity String?
+  completed       Boolean   @default(false)
+  orderIndex      Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([mealLogId])
+  @@index([mealItemId])
 }
 
 // -----------------------------------------------------------------------------
