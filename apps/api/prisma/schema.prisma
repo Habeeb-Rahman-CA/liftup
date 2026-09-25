@@ -11,6 +11,11 @@ datasource db {
 // -----------------------------------------------------------------------------
 // ENUMS
 // -----------------------------------------------------------------------------
+enum Role {
+  USER
+  ADMIN
+}
+
 enum WorkoutSessionStatus {
   PLANNED
   IN_PROGRESS
@@ -25,20 +30,42 @@ enum SetType {
 }
 
 // -----------------------------------------------------------------------------
-// USER DOMAIN
+// USER & AUTH DOMAIN
 // -----------------------------------------------------------------------------
 model User {
   id               String            @id @default(cuid())
   email            String            @unique
+  passwordHash     String
   name             String?
   avatar           String?
   timezone         String?           @default("UTC")
+  role             Role              @default(USER)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+
+  // Auth & Session Relations
+  refreshTokens    RefreshToken[]
 
   // Workout Relations
   workoutSchedules WorkoutSchedule[]
   workoutSessions  WorkoutSession[]
+
+  // Meal Domain Relations
+  mealPlans        MealPlan[]
+  mealDayLogs      MealDayLog[]
+  foods            Food[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
 }
 
 // -----------------------------------------------------------------------------
@@ -62,36 +89,64 @@ model WorkoutSchedule {
 
 /// Day defined within a workout schedule (e.g., "Leg Day", "Push Day")
 model WorkoutDay {
-  id          String           @id @default(cuid())
+  id          String               @id @default(cuid())
   scheduleId  String
-  schedule    WorkoutSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  schedule    WorkoutSchedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   name        String
-  dayOfWeek   Int              // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  dayOfWeek   Int                  // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  isRestDay   Boolean              @default(false)
   description String?
+  exercises   WorkoutDayExercise[]
   sessions    WorkoutSession[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   @@index([scheduleId])
+  @@index([dayOfWeek])
+}
+
+/// Exercise assigned to a specific workout day routine
+model WorkoutDayExercise {
+  id            String     @id @default(cuid())
+  workoutDayId  String
+  workoutDay    WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exerciseId    String
+  exercise      Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  targetSets    Int?       @default(3)
+  targetRepsMin Int?       @default(8)
+  targetRepsMax Int?       @default(12)
+  orderIndex    Int        @default(0)
+  note          String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([workoutDayId])
+  @@index([exerciseId])
+  @@index([orderIndex])
 }
 
 /// Master Exercise library catalog
 model Exercise {
-  id              String        @id @default(cuid())
-  name            String
-  category        String        // e.g., CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE, CARDIO
-  description     String?
-  instructions    String?
-  defaultSets     Int?          @default(3)
-  defaultRepsMin  Int?          @default(8)
-  defaultRepsMax  Int?          @default(12)
-  isActive        Boolean       @default(true)
-  exerciseLogs    ExerciseLog[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  category            String               // e.g., CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE, CARDIO
+  description         String?
+  instructions        String?
+  defaultSets         Int?                 @default(3)
+  defaultRepsMin      Int?                 @default(8)
+  defaultRepsMax      Int?                 @default(12)
+  orderIndex          Int                  @default(0)
+  isActive            Boolean              @default(true)
+  workoutDayExercises WorkoutDayExercise[]
+  exerciseLogs        ExerciseLog[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([category])
   @@index([name])
+  @@index([orderIndex])
+  @@index([isActive])
+  @@index([category, isActive, orderIndex])
 }
 
 /// Actual logged workout performance instance
@@ -116,6 +171,9 @@ model WorkoutSession {
   @@index([workoutDayId])
   @@index([status])
   @@index([startedAt])
+  @@index([userId, status])
+  @@index([userId, startedAt(sort: Desc)])
+  @@index([userId, workoutDayId])
 }
 
 /// Exercise performed during a workout session
@@ -133,6 +191,7 @@ model ExerciseLog {
 
   @@index([workoutSessionId])
   @@index([exerciseId])
+  @@index([workoutSessionId, order])
 }
 
 /// Individual set metrics recorded within an exercise log
@@ -151,6 +210,164 @@ model SetLog {
   updatedAt     DateTime    @updatedAt
 
   @@index([exerciseLogId])
+  @@index([exerciseLogId, setNumber])
+}
+
+// -----------------------------------------------------------------------------
+// MEAL DOMAIN
+// -----------------------------------------------------------------------------
+
+/// Reusable meal plan template (e.g. "Standard 4-Meal Plan")
+model MealPlan {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isActive    Boolean       @default(true)
+  meals       Meal[]
+  dayLogs     MealDayLog[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+/// Planned meal within a meal plan (e.g., "Meal 1", "Meal 2", "Meal 3", "Meal 4")
+model Meal {
+  id          String     @id @default(cuid())
+  mealPlanId  String
+  mealPlan    MealPlan   @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  name        String
+  orderIndex  Int        @default(0)
+  time        String?    // e.g. "08:00 AM"
+  items       MealItem[]
+  mealLogs    MealLog[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([mealPlanId])
+  @@index([orderIndex])
+  @@index([mealPlanId, orderIndex])
+}
+
+/// Food item assigned to a meal with quantity and unit
+model MealItem {
+  id              String        @id @default(cuid())
+  mealId          String
+  meal            Meal          @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  foodId          String?
+  food            Food?         @relation(fields: [foodId], references: [id], onDelete: SetNull)
+  name            String        // e.g., "Whole Egg", "Chicken Breast", "Oats", "Rice"
+  quantity        Float?        // e.g., 4, 150, 40, 10
+  unit            String?       // e.g., "pcs", "g", "ml", "Rotis/Chappati"
+  displayQuantity String?       // e.g., "4 Whole Egg", "150g Chicken Breast"
+  orderIndex      Int           @default(0)
+  itemLogs        MealItemLog[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([mealId])
+  @@index([foodId])
+  @@index([orderIndex])
+  @@index([mealId, orderIndex])
+}
+
+/// Daily nutrition log instance tracking a single calendar day's eating
+model MealDayLog {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlanId String?
+  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  date       String    // "YYYY-MM-DD" e.g., "2026-09-25"
+  note       String?
+  mealLogs   MealLog[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@index([userId, date])
+}
+
+/// Log of an individual meal for a specific day
+model MealLog {
+  id           String        @id @default(cuid())
+  mealDayLogId String
+  mealDayLog   MealDayLog    @relation(fields: [mealDayLogId], references: [id], onDelete: Cascade)
+  mealId       String?
+  meal         Meal?         @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  name         String        // e.g., "Meal 1"
+  orderIndex   Int           @default(0)
+  completed    Boolean       @default(false)
+  completedAt  DateTime?
+  note         String?
+  itemLogs     MealItemLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([mealDayLogId])
+  @@index([mealId])
+  @@index([mealDayLogId, orderIndex])
+}
+
+/// Log of an individual food item within a meal log
+model MealItemLog {
+  id              String    @id @default(cuid())
+  mealLogId       String
+  mealLog         MealLog   @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+  mealItemId      String?
+  mealItem        MealItem? @relation(fields: [mealItemId], references: [id], onDelete: SetNull)
+  name            String
+  quantity        Float?
+  unit            String?
+  displayQuantity String?
+  completed       Boolean   @default(false)
+  orderIndex      Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([mealLogId])
+  @@index([mealItemId])
+  @@index([mealLogId, orderIndex])
+}
+
+// -----------------------------------------------------------------------------
+// FOOD / NUTRITION DOMAIN
+// -----------------------------------------------------------------------------
+
+/// Master food library catalog item
+model Food {
+  id          String     @id @default(cuid())
+  name        String
+  category    String     // PROTEIN, CARBS, FATS, SUPERFOODS
+  description String?
+  servingSize Float?     @default(100) // e.g., 100
+  servingUnit String?    @default("g") // e.g., "g", "pcs", "ml", "tbsp"
+  calories    Float?     // kcal per serving
+  protein     Float?     // g
+  carbs       Float?     // g
+  fat         Float?     // g
+  fiber       Float?     // g
+  benefits    String?    // Health & superfood benefits
+  notes       String?    // Preparation/culinary notes
+  orderIndex  Int        @default(0)
+  isActive    Boolean    @default(true)
+  isCustom    Boolean    @default(false)
+  userId      String?    // custom foods created by user
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealItems   MealItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([category])
+  @@index([name])
+  @@index([userId])
+  @@index([isActive])
+  @@index([orderIndex])
+  @@index([category, isActive, orderIndex])
 }
 
 // -----------------------------------------------------------------------------

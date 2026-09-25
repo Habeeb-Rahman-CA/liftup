@@ -11,6 +11,7 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   error?: {
     code: string;
+    message?: string;
     details?: unknown;
   };
   timestamp: string;
@@ -19,6 +20,7 @@ export interface ApiResponse<T = unknown> {
 export interface HealthStatus {
   status: 'ok' | 'error' | 'degraded';
   service?: string;
+  version?: string;
   timestamp: string;
   uptime?: number;
   database: {
@@ -28,20 +30,55 @@ export interface HealthStatus {
     latencyMs?: number;
     error?: string;
   };
-  version?: string;
 }
 
 // -----------------------------------------------------------------------------
-// USER DOMAIN
+// AUTH & USER DOMAIN
 // -----------------------------------------------------------------------------
+export type UserRole = 'USER' | 'ADMIN';
+
 export interface UserProfile {
   id: string;
   email: string;
   name?: string | null;
   avatar?: string | null;
   timezone?: string | null;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number; // in seconds
+}
+
+export interface AuthResponse {
+  user: UserProfile;
+  tokens: AuthTokens;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  name?: string;
+  timezone?: string;
+}
+
+export interface RefreshTokenPayload {
+  refreshToken: string;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  avatar?: string;
+  timezone?: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -67,10 +104,71 @@ export interface WorkoutDayDto {
   scheduleId: string;
   name: string;
   dayOfWeek: number; // 0 (Sun) - 6 (Sat)
+  isRestDay: boolean;
   description?: string | null;
+  exercises?: WorkoutDayExerciseDto[];
   createdAt: string;
   updatedAt: string;
 }
+
+export interface WorkoutDayExerciseDto {
+  id: string;
+  workoutDayId: string;
+  exerciseId: string;
+  exercise?: ExerciseDto;
+  targetSets?: number | null;
+  targetRepsMin?: number | null;
+  targetRepsMax?: number | null;
+  orderIndex: number;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TodayWorkoutDto {
+  todayDayOfWeek: number;
+  todayDayName: string;
+  todayDateFormatted: string;
+  today: WorkoutDayDto | null;
+  upcoming: WorkoutDayDto | null;
+  scheduleId: string;
+  scheduleName: string;
+  completedToday?: WorkoutSessionDto | null;
+}
+
+export interface AssignExercisePayload {
+  exerciseId: string;
+  targetSets?: number;
+  targetRepsMin?: number;
+  targetRepsMax?: number;
+  orderIndex?: number;
+  note?: string;
+}
+
+export interface BatchAssignExercisesPayload {
+  exercises: AssignExercisePayload[];
+}
+
+export interface UpdateAssignedExercisePayload {
+  targetSets?: number;
+  targetRepsMin?: number;
+  targetRepsMax?: number;
+  orderIndex?: number;
+  note?: string | null;
+}
+
+export interface UpdateDayPayload {
+  name?: string;
+  isRestDay?: boolean;
+  description?: string | null;
+}
+
+export interface ReorderDayExercisesPayload {
+  items: { id: string; orderIndex: number }[];
+}
+
+export type StandardExerciseCategory =
+  'CHEST' | 'BACK' | 'SHOULDERS' | 'LEGS' | 'ARMS' | 'CORE' | 'CARDIO' | 'OTHER';
 
 export interface ExerciseDto {
   id: string;
@@ -81,9 +179,51 @@ export interface ExerciseDto {
   defaultSets?: number | null;
   defaultRepsMin?: number | null;
   defaultRepsMax?: number | null;
+  orderIndex: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateExercisePayload {
+  name: string;
+  category: string;
+  description?: string;
+  instructions?: string;
+  defaultSets?: number;
+  defaultRepsMin?: number;
+  defaultRepsMax?: number;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateExercisePayload {
+  name?: string;
+  category?: string;
+  description?: string | null;
+  instructions?: string | null;
+  defaultSets?: number | null;
+  defaultRepsMin?: number | null;
+  defaultRepsMax?: number | null;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface ReorderExerciseItem {
+  id: string;
+  orderIndex: number;
+}
+
+export interface ReorderExercisesPayload {
+  items: ReorderExerciseItem[];
+}
+
+export interface ExerciseQueryParams {
+  category?: string;
+  search?: string;
+  isActive?: boolean | string;
+  sortBy?: 'orderIndex' | 'name' | 'category' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface WorkoutSessionDto {
@@ -126,6 +266,478 @@ export interface SetLogDto {
   note?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StartWorkoutSessionPayload {
+  workoutDayId?: string;
+  name?: string;
+  note?: string;
+}
+
+export interface UpdateWorkoutSessionPayload {
+  name?: string;
+  status?: WorkoutSessionStatus;
+  note?: string | null;
+  skipReason?: string | null;
+  endedAt?: string | null;
+  durationMinutes?: number | null;
+}
+
+export interface CompleteWorkoutSessionPayload {
+  note?: string | null;
+  durationMinutes?: number;
+}
+
+export type SkipReasonType = 'Lack of sleep' | 'Feeling unwell' | 'Busy' | 'Recovery' | 'Other';
+
+export interface SkipWorkoutSessionPayload {
+  workoutDayId?: string;
+  sessionId?: string;
+  skipReason: string;
+  note?: string | null;
+}
+
+export interface LogRestDayPayload {
+  workoutDayId?: string;
+  note?: string | null;
+}
+
+export interface WorkoutHistoryQueryParams {
+  page?: number;
+  limit?: number;
+  status?: 'ALL' | 'COMPLETED' | 'SKIPPED' | 'REST';
+  search?: string;
+}
+
+export interface WorkoutHistorySummaryDto {
+  totalCount: number;
+  completedCount: number;
+  skippedCount: number;
+  restCount: number;
+  totalVolume: number;
+  totalSets: number;
+  avgDurationMinutes: number;
+}
+
+export interface WorkoutHistoryResponseDto extends PaginatedResult<WorkoutSessionDto> {
+  summary: WorkoutHistorySummaryDto;
+}
+
+export interface AddExerciseToSessionPayload {
+  exerciseId: string;
+  order?: number;
+  note?: string;
+}
+
+export interface CreateSetLogPayload {
+  type?: SetType;
+  setNumber?: number;
+  reps?: number;
+  weight?: number;
+  rpe?: number;
+  completed?: boolean;
+  note?: string;
+}
+
+export interface UpdateSetLogPayload {
+  type?: SetType;
+  setNumber?: number;
+  reps?: number | null;
+  weight?: number | null;
+  rpe?: number | null;
+  completed?: boolean;
+  note?: string | null;
+}
+
+export interface PreviousExercisePerformanceDto {
+  exerciseId: string;
+  exerciseName?: string;
+  lastPerformedAt?: string | null;
+  lastSessionName?: string | null;
+  previousNote?: string | null;
+  estimated1RM?: number | null;
+  bestSet?: {
+    weight: number;
+    reps: number;
+    estimated1RM?: number;
+  } | null;
+  sets: {
+    type: SetType;
+    setNumber: number;
+    weight?: number | null;
+    reps?: number | null;
+    rpe?: number | null;
+    completed: boolean;
+    note?: string | null;
+  }[];
+  historySnippet?: {
+    date: string;
+    sessionName: string;
+    maxWeight?: number | null;
+    totalVolume?: number | null;
+    completedSetsCount: number;
+  }[];
+}
+
+export interface ExerciseHistoryItemDto {
+  sessionId: string;
+  sessionName: string;
+  performedAt: string;
+  durationMinutes?: number | null;
+  exerciseNote?: string | null;
+  maxWeight?: number | null;
+  totalVolume?: number | null;
+  sets: {
+    type: SetType;
+    setNumber: number;
+    weight?: number | null;
+    reps?: number | null;
+    rpe?: number | null;
+    completed: boolean;
+    note?: string | null;
+  }[];
+}
+
+// -----------------------------------------------------------------------------
+// PROGRESSION & PROGRESS MODULE TYPES (PHASE 6)
+// -----------------------------------------------------------------------------
+export type ProgressionIndicator = 'UP' | 'SAME' | 'DOWN' | 'FIRST_TIME';
+
+export interface ExerciseProgressionCheckpointDto {
+  date: string;
+  sessionName: string;
+  topWeight: number | null;
+  topReps: number | null;
+  weightDelta?: number | null;
+  repDelta?: number | null;
+  indicator: ProgressionIndicator;
+  note?: string | null;
+  sets: {
+    type: SetType;
+    setNumber: number;
+    weight?: number | null;
+    reps?: number | null;
+    completed: boolean;
+  }[];
+}
+
+export interface ExerciseProgressionDto {
+  exerciseId: string;
+  exerciseName: string;
+  category: string;
+  lastSession: {
+    performedAt: string;
+    sessionName: string;
+    sets: {
+      type: SetType;
+      setNumber: number;
+      weight?: number | null;
+      reps?: number | null;
+      completed: boolean;
+    }[];
+    note?: string | null;
+  } | null;
+  highestWeight: number | null;
+  highestWeightReps?: number | null;
+  highestReps: number | null;
+  previousNote: string | null;
+  todayReference: {
+    headline: string;
+    suggestion: string;
+    targetSets: number;
+    targetRepsMin: number;
+    targetRepsMax: number;
+    recommendedWeight?: number | null;
+  };
+  overallIndicator: ProgressionIndicator;
+  recentCheckpoints: ExerciseProgressionCheckpointDto[];
+}
+
+export interface WorkoutConsistencyDto {
+  workoutsThisWeek: number;
+  workoutsThisMonth: number;
+  totalCompletedWorkouts: number;
+  currentStreakWeeks: number;
+  weeklyHistory: {
+    weekLabel: string;
+    completedCount: number;
+    daysActive: number[];
+  }[];
+}
+
+export interface StrengthHistoryDto {
+  totalVolumeAllTime: number;
+  topProgressedExercises: {
+    exerciseId: string;
+    exerciseName: string;
+    category: string;
+    lastWeight: number | null;
+    lastReps: number | null;
+    indicator: ProgressionIndicator;
+    weightGain: number;
+  }[];
+}
+
+export interface BodyWeightEntryDto {
+  id: string;
+  date: string;
+  weight: number;
+  unit: 'kg' | 'lbs';
+  note?: string | null;
+}
+
+export interface BodyWeightProgressDto {
+  latestWeight: number | null;
+  weightUnit: 'kg' | 'lbs';
+  lastLoggedAt: string | null;
+  entries: BodyWeightEntryDto[];
+}
+
+export interface ProgressOverviewDto {
+  consistency: WorkoutConsistencyDto;
+  strength: StrengthHistoryDto;
+  bodyWeight: BodyWeightProgressDto;
+  recentlyTrainedExercises: ExerciseProgressionDto[];
+}
+
+// -----------------------------------------------------------------------------
+// MEAL DOMAIN TYPES (PHASE 8)
+// -----------------------------------------------------------------------------
+
+export interface MealItemDto {
+  id: string;
+  mealId: string;
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  displayQuantity?: string | null;
+  orderIndex: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MealDto {
+  id: string;
+  mealPlanId: string;
+  name: string;
+  orderIndex: number;
+  time?: string | null;
+  items: MealItemDto[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MealPlanDto {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  meals: MealDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMealItemDto {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  displayQuantity?: string;
+  orderIndex?: number;
+}
+
+export interface UpdateMealItemDto {
+  name?: string;
+  quantity?: number;
+  unit?: string;
+  displayQuantity?: string;
+  orderIndex?: number;
+}
+
+export interface CreateMealDto {
+  name: string;
+  orderIndex?: number;
+  time?: string;
+  items?: CreateMealItemDto[];
+}
+
+export interface UpdateMealDto {
+  name?: string;
+  orderIndex?: number;
+  time?: string;
+}
+
+export interface CreateMealPlanDto {
+  name: string;
+  description?: string;
+  meals?: CreateMealDto[];
+}
+
+export interface UpdateMealPlanDto {
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface MealItemLogDto {
+  id: string;
+  mealLogId: string;
+  mealItemId?: string | null;
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  displayQuantity?: string | null;
+  completed: boolean;
+  orderIndex: number;
+}
+
+export interface MealLogDto {
+  id: string;
+  mealDayLogId: string;
+  mealId?: string | null;
+  name: string;
+  orderIndex: number;
+  completed: boolean;
+  completedAt?: string | null;
+  note?: string | null;
+  itemLogs: MealItemLogDto[];
+}
+
+export interface MealDayLogDto {
+  id: string;
+  userId: string;
+  mealPlanId?: string | null;
+  date: string;
+  dateFormatted?: string;
+  note?: string | null;
+  mealLogs: MealLogDto[];
+  totalMealsCount: number;
+  completedMealsCount: number;
+  completionPercentage: number;
+}
+
+export interface TodayMealsResponseDto {
+  todayLog: MealDayLogDto;
+  activePlan: MealPlanDto | null;
+  summary: {
+    totalMeals: number;
+    completedMeals: number;
+    totalItems: number;
+    completedItems: number;
+    completionRate: number;
+  };
+}
+
+export interface ToggleMealCompletionDto {
+  completed?: boolean;
+  note?: string;
+}
+
+export interface ToggleMealItemCompletionDto {
+  completed?: boolean;
+}
+
+export interface UpdateMealDayNoteDto {
+  note: string;
+}
+
+export interface MealHistoryDaySummaryDto {
+  id: string;
+  date: string;
+  dateFormatted: string;
+  totalMeals: number;
+  completedMeals: number;
+  completionPercentage: number;
+  note?: string | null;
+  mealLogs: MealLogDto[];
+}
+
+export interface MealHistoryResponseDto {
+  items: MealHistoryDaySummaryDto[];
+  summary: {
+    totalLoggedDays: number;
+    perfectDaysCount: number;
+    overallCompletionRate: number;
+  };
+}
+
+// -----------------------------------------------------------------------------
+// FOOD DOMAIN TYPES (PHASE 9)
+// -----------------------------------------------------------------------------
+
+export type FoodCategory = 'PROTEIN' | 'CARBS' | 'FATS' | 'SUPERFOODS' | string;
+
+export interface FoodDto {
+  id: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  servingSize?: number | null;
+  servingUnit?: string | null;
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  fiber?: number | null;
+  benefits?: string | null;
+  notes?: string | null;
+  orderIndex: number;
+  isActive: boolean;
+  isCustom: boolean;
+  userId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FoodCategoryStatsDto {
+  category: string;
+  count: number;
+  activeCount: number;
+}
+
+export interface CreateFoodDto {
+  name: string;
+  category: string;
+  description?: string;
+  servingSize?: number;
+  servingUnit?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  benefits?: string;
+  notes?: string;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateFoodDto {
+  name?: string;
+  category?: string;
+  description?: string;
+  servingSize?: number;
+  servingUnit?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  benefits?: string;
+  notes?: string;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface FoodQueryParams {
+  category?: string;
+  search?: string;
+  isActive?: boolean | string;
+  sortBy?:
+    'orderIndex' | 'name' | 'category' | 'calories' | 'protein' | 'carbs' | 'fat' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
 }
 
 // -----------------------------------------------------------------------------
