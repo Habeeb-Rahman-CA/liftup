@@ -439,7 +439,7 @@ export default function DashboardPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => setSkipModalOpen(true)}
-                        className="border-amber-900/60 bg-amber-950/30 hover:bg-amber-900/50 text-amber-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                        className="border-amber-900/60 bg-amber-950/30 hover:bg-amber-900/50 text-amber-300 text-xs h-8.5 px-3 rounded-xl font-medium gap-1 touch-manipulation active:scale-95"
                         title="Skip Today's Workout"
                       >
                         <AlertCircle className="h-3.5 w-3.5" />
@@ -450,7 +450,7 @@ export default function DashboardPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => setRestModalOpen(true)}
-                        className="border-purple-900/60 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                        className="border-purple-900/60 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 text-xs h-8.5 px-3 rounded-xl font-medium gap-1 touch-manipulation active:scale-95"
                         title="Log Today as Rest Day"
                       >
                         <BedDouble className="h-3.5 w-3.5" />
@@ -465,9 +465,9 @@ export default function DashboardPage() {
                       <Link href="/workouts/active">
                         <Button
                           size="sm"
-                          className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8 px-3 rounded-xl font-medium gap-1.5 shadow-md"
+                          className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8.5 px-3.5 rounded-xl font-semibold gap-1.5 shadow-md touch-manipulation active:scale-95"
                         >
-                          <Play className="h-3 w-3 fill-current" />
+                          <Play className="h-3.5 w-3.5 fill-current" />
                           <span>Resume Workout</span>
                         </Button>
                       </Link>
@@ -480,9 +480,9 @@ export default function DashboardPage() {
                             name: todayData.today!.name,
                           })
                         }
-                        className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8 px-3 rounded-xl font-medium gap-1.5 shadow-md"
+                        className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8.5 px-3.5 rounded-xl font-semibold gap-1.5 shadow-md touch-manipulation active:scale-95"
                       >
-                        <Play className="h-3 w-3 fill-current" />
+                        <Play className="h-3.5 w-3.5 fill-current" />
                         <span>Start Workout</span>
                       </Button>
                     ))}
@@ -491,7 +491,7 @@ export default function DashboardPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8 px-2.5 rounded-xl font-medium gap-1"
+                      className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-xs h-8.5 px-3 rounded-xl font-medium gap-1 touch-manipulation active:scale-95"
                       title="View Schedule"
                     >
                       <span className="hidden sm:inline">Schedule</span>

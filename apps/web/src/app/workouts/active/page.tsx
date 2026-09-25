@@ -414,11 +414,38 @@ export default function ActiveWorkoutPage() {
             type="button"
             variant="outline"
             onClick={() => setAddExerciseModalOpen(true)}
-            className="w-full border-dashed border-zinc-800 hover:border-emerald-700 bg-zinc-900/40 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-300 h-12 rounded-2xl text-xs font-medium gap-2 transition-all"
+            className="w-full border-dashed border-zinc-800 hover:border-emerald-700 bg-zinc-900/40 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-300 h-12 rounded-2xl text-xs font-medium gap-2 transition-all touch-manipulation active:scale-[0.99]"
           >
             <Plus className="h-4 w-4 text-emerald-400" />
             <span>Add Another Exercise</span>
           </Button>
+
+          {/* Big Prominent Finish Workout CTA Card (Effortless Single-Thumb Tap at Bottom) */}
+          <div className="pt-2 pb-6">
+            <button
+              type="button"
+              onClick={() => setFinishModalOpen(true)}
+              className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 hover:from-emerald-900 hover:to-emerald-900 border border-emerald-700 text-emerald-100 shadow-xl shadow-emerald-950/80 flex items-center justify-between gap-3 transition-all touch-manipulation active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-800/80 border border-emerald-600 text-emerald-100 shrink-0">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="font-bold text-sm sm:text-base text-zinc-100">
+                    Complete &amp; Save Workout
+                  </p>
+                  <p className="text-xs text-emerald-300/80 font-mono">
+                    {totalCompletedSets} sets logged • {formattedTime}
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-xs font-mono font-bold bg-emerald-800/90 border border-emerald-600 px-3 py-1.5 rounded-xl shrink-0">
+                Finish ✓
+              </span>
+            </button>
+          </div>
         </div>
       )}
 

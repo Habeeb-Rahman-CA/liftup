@@ -362,130 +362,150 @@ export function ExerciseSessionCard({
 
         {/* Set Rows (Warmups at the Top, followed by Working sets) */}
         <div className="space-y-1.5">
-          {orderedSets.map((set, setIdx) => {
-            const isWarmup = set.type === 'WARMUP';
-            let displayBadge = '';
-            if (isWarmup) {
-              warmupCounter++;
-              displayBadge = totalWarmups > 1 ? `W${warmupCounter}` : 'W';
-            } else {
-              workingCounter++;
-              displayBadge = `${workingCounter}`;
-            }
+          {(() => {
+            // Find the first uncompleted set to mark as active
+            const firstUncompletedId = orderedSets.find(s => !s.completed)?.id;
 
-            const previousInfo = getPreviousForSet(setIdx);
+            return orderedSets.map((set, setIdx) => {
+              const isWarmup = set.type === 'WARMUP';
+              const isNextActive = set.id === firstUncompletedId;
+              let displayBadge = '';
+              if (isWarmup) {
+                warmupCounter++;
+                displayBadge = totalWarmups > 1 ? `W${warmupCounter}` : 'W';
+              } else {
+                workingCounter++;
+                displayBadge = `${workingCounter}`;
+              }
 
-            return (
-              <div
-                key={set.id}
-                className={`grid grid-cols-12 gap-2 items-center p-1.5 sm:p-2 rounded-xl border transition-all ${
-                  set.completed
-                    ? 'bg-emerald-950/20 border-emerald-900/60'
-                    : 'bg-zinc-950/80 border-zinc-800/80 hover:border-zinc-700'
-                }`}
-              >
-                {/* Set Type / Sequence Badge */}
-                <div className="col-span-2 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleSetType(set)}
-                    className={`h-7 w-7 rounded-lg text-xs font-mono font-bold flex items-center justify-center transition-colors border ${
-                      isWarmup
-                        ? 'bg-amber-950/80 text-amber-300 border-amber-800'
-                        : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:text-zinc-100'
-                    }`}
-                    title={
-                      isWarmup
-                        ? 'Warm-up Set (Click to switch to Working)'
-                        : 'Working Set (Click to switch to Warm-up)'
-                    }
-                  >
-                    {displayBadge}
-                  </button>
-                </div>
+              const previousInfo = getPreviousForSet(setIdx);
 
-                {/* Previous Reference (Clickable to autofill this set) */}
-                <div className="col-span-3 flex justify-center">
-                  {previousInfo.hasData ? (
+              return (
+                <div
+                  key={set.id}
+                  className={`grid grid-cols-12 gap-2 items-center p-2 rounded-xl border transition-all ${
+                    set.completed
+                      ? 'bg-emerald-950/20 border-emerald-900/60'
+                      : isNextActive
+                        ? 'bg-zinc-900/95 border-emerald-500/60 ring-1 ring-emerald-500/30 shadow-sm'
+                        : 'bg-zinc-950/80 border-zinc-800/80 hover:border-zinc-700'
+                  }`}
+                >
+                  {/* Set Type / Sequence Badge */}
+                  <div className="col-span-2 flex justify-center">
                     <button
                       type="button"
-                      onClick={() => handleAutofillSingleSet(set, setIdx)}
-                      className="font-mono text-[11px] text-zinc-400 hover:text-emerald-300 hover:bg-zinc-900 px-1.5 py-0.5 rounded transition-colors truncate max-w-full"
-                      title="Click to copy into current set"
+                      onClick={() => handleToggleSetType(set)}
+                      className={`h-8 w-8 rounded-lg text-xs font-mono font-bold flex items-center justify-center transition-transform touch-manipulation active:scale-95 border ${
+                        isWarmup
+                          ? 'bg-amber-950/80 text-amber-300 border-amber-800'
+                          : isNextActive
+                            ? 'bg-zinc-900 text-emerald-300 border-emerald-700 font-extrabold'
+                            : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:text-zinc-100'
+                      }`}
+                      title={
+                        isWarmup
+                          ? 'Warm-up Set (Click to switch to Working)'
+                          : 'Working Set (Click to switch to Warm-up)'
+                      }
                     >
-                      {previousInfo.text}
+                      {displayBadge}
                     </button>
-                  ) : (
-                    <span className="font-mono text-[11px] text-zinc-600">-</span>
-                  )}
-                </div>
+                  </div>
 
-                {/* Weight Input (kg/lbs) */}
-                <div className="col-span-3">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.5"
-                    min="0"
-                    placeholder="0"
-                    defaultValue={set.weight !== null && set.weight !== undefined ? set.weight : ''}
-                    onBlur={e => {
-                      const val = e.target.value === '' ? null : parseFloat(e.target.value);
-                      if (val !== set.weight) {
-                        onUpdateSet(set.id, { weight: val });
+                  {/* Previous Reference (Clickable to autofill this set) */}
+                  <div className="col-span-3 flex justify-center">
+                    {previousInfo.hasData ? (
+                      <button
+                        type="button"
+                        onClick={() => handleAutofillSingleSet(set, setIdx)}
+                        className="font-mono text-xs text-zinc-400 hover:text-emerald-300 hover:bg-zinc-900 px-2 py-1 rounded-lg transition-colors truncate max-w-full touch-manipulation active:scale-95"
+                        title="Tap to copy into current set"
+                      >
+                        {previousInfo.text}
+                      </button>
+                    ) : (
+                      <span className="font-mono text-xs text-zinc-600">-</span>
+                    )}
+                  </div>
+
+                  {/* Weight Input (kg/lbs) */}
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.5"
+                      min="0"
+                      placeholder="0"
+                      defaultValue={
+                        set.weight !== null && set.weight !== undefined ? set.weight : ''
                       }
-                    }}
-                    className={`w-full h-8 sm:h-9 text-center text-xs sm:text-sm font-mono font-bold rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors touch-manipulation ${
-                      set.completed
-                        ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-600'
-                    }`}
-                  />
-                </div>
-
-                {/* Reps Input */}
-                <div className="col-span-3">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    step="1"
-                    min="0"
-                    placeholder="0"
-                    defaultValue={set.reps !== null && set.reps !== undefined ? set.reps : ''}
-                    onBlur={e => {
-                      const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
-                      if (val !== set.reps) {
-                        onUpdateSet(set.id, { reps: val });
-                      }
-                    }}
-                    className={`w-full h-8 sm:h-9 text-center text-xs sm:text-sm font-mono font-bold rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors touch-manipulation ${
-                      set.completed
-                        ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-600'
-                    }`}
-                  />
-                </div>
-
-                {/* Completion Checkmark Action */}
-                <div className="col-span-1 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleComplete(set)}
-                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center transition-all touch-manipulation ${
-                      set.completed
-                        ? 'bg-emerald-900 text-emerald-100 border border-emerald-600 shadow-md shadow-emerald-950/60 scale-105'
-                        : 'bg-zinc-800 text-zinc-500 border border-zinc-700 hover:text-zinc-200 hover:border-zinc-600'
-                    }`}
-                    title={set.completed ? 'Mark incomplete' : 'Mark completed'}
-                  >
-                    <Check
-                      className={`h-4 w-4 ${set.completed ? 'stroke-[2.5]' : 'stroke-[1.5]'}`}
+                      onFocus={e => e.target.select()}
+                      onBlur={e => {
+                        const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                        if (val !== set.weight) {
+                          onUpdateSet(set.id, { weight: val });
+                        }
+                      }}
+                      className={`w-full h-9 text-center text-sm font-mono font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors touch-manipulation ${
+                        set.completed
+                          ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
+                          : isNextActive
+                            ? 'bg-zinc-900 border-emerald-600 text-zinc-100'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-600'
+                      }`}
                     />
-                  </button>
+                  </div>
+
+                  {/* Reps Input */}
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      step="1"
+                      min="0"
+                      placeholder="0"
+                      defaultValue={set.reps !== null && set.reps !== undefined ? set.reps : ''}
+                      onFocus={e => e.target.select()}
+                      onBlur={e => {
+                        const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                        if (val !== set.reps) {
+                          onUpdateSet(set.id, { reps: val });
+                        }
+                      }}
+                      className={`w-full h-9 text-center text-sm font-mono font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors touch-manipulation ${
+                        set.completed
+                          ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
+                          : isNextActive
+                            ? 'bg-zinc-900 border-emerald-600 text-zinc-100'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-600'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Completion Checkmark Action */}
+                  <div className="col-span-1 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleComplete(set)}
+                      className={`h-9 w-9 rounded-xl flex items-center justify-center transition-all touch-manipulation active:scale-90 ${
+                        set.completed
+                          ? 'bg-emerald-900 text-emerald-100 border border-emerald-600 shadow-md shadow-emerald-950/60 scale-105'
+                          : isNextActive
+                            ? 'bg-zinc-800 text-zinc-400 border border-emerald-600/70 hover:text-emerald-300 hover:border-emerald-500'
+                            : 'bg-zinc-800 text-zinc-500 border border-zinc-700 hover:text-zinc-200 hover:border-zinc-600'
+                      }`}
+                      title={set.completed ? 'Mark incomplete' : 'Mark completed'}
+                    >
+                      <Check
+                        className={`h-4.5 w-4.5 ${set.completed ? 'stroke-[2.5]' : 'stroke-[2]'}`}
+                      />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
 
         {/* Action Controls: + Working Set, + Warm-up Set, Delete Set */}
@@ -496,9 +516,9 @@ export function ExerciseSessionCard({
               variant="outline"
               size="sm"
               onClick={() => onAddSet(log.id, 'WORKING')}
-              className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-400 text-xs h-7 px-2.5 rounded-lg gap-1"
+              className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-emerald-400 text-xs h-8 px-3 rounded-xl gap-1.5 touch-manipulation active:scale-95"
             >
-              <Plus className="h-3.5 w-3.5 text-emerald-400" />
+              <Plus className="h-4 w-4 text-emerald-400" />
               <span>Add Set</span>
             </Button>
 
@@ -507,7 +527,7 @@ export function ExerciseSessionCard({
               variant="outline"
               size="sm"
               onClick={() => onAddSet(log.id, 'WARMUP')}
-              className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-amber-300 text-xs h-7 px-2 rounded-lg gap-1"
+              className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-amber-300 text-xs h-8 px-2.5 rounded-xl gap-1.5 touch-manipulation active:scale-95"
             >
               <Flame className="h-3.5 w-3.5 text-amber-400" />
               <span>Warmup</span>
@@ -521,10 +541,10 @@ export function ExerciseSessionCard({
                 const lastSet = log.setLogs![log.setLogs!.length - 1];
                 onDeleteSet(lastSet.id);
               }}
-              className="text-[11px] text-zinc-500 hover:text-red-400 transition-colors p-1"
+              className="text-xs text-zinc-500 hover:text-red-400 transition-colors p-1.5 touch-manipulation active:scale-95"
               title="Delete Last Set"
             >
-              Remove last set
+              Remove set
             </button>
           )}
         </div>
