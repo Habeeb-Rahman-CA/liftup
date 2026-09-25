@@ -114,6 +114,8 @@ export default function RegisterPage() {
             <Input
               id="name"
               type="text"
+              autoComplete="name"
+              autoCapitalize="words"
               placeholder="Full Name"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -132,6 +134,11 @@ export default function RegisterPage() {
             <Input
               id="email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
               placeholder="Email address"
               value={email}
@@ -151,6 +158,7 @@ export default function RegisterPage() {
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
               required
               placeholder="Enter Password"
               value={password}
@@ -175,7 +183,7 @@ export default function RegisterPage() {
             type="checkbox"
             checked={agreeTerms}
             onChange={e => setAgreeTerms(e.target.checked)}
-            className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-emerald-600 focus:ring-emerald-800 accent-emerald-600 cursor-pointer"
+            className="h-5 w-5 rounded-md border-zinc-700 bg-zinc-900 text-emerald-600 focus:ring-emerald-800 accent-emerald-600 cursor-pointer touch-manipulation"
           />
           <label htmlFor="terms" className="text-zinc-400 select-none cursor-pointer">
             I agree to the{' '}

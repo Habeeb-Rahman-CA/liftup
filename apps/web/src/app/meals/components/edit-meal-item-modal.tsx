@@ -115,8 +115,8 @@ export const EditMealItemModal: React.FC<EditMealItemModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-safe bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full modal-safe-bounds p-5 space-y-4 shadow-2xl relative overflow-y-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-950/80 border border-emerald-800/80 text-emerald-400">
@@ -198,8 +198,10 @@ export const EditMealItemModal: React.FC<EditMealItemModalProps> = ({
               </label>
               <Input
                 type="number"
+                inputMode="decimal"
                 step="any"
                 value={quantity}
+                onFocus={e => e.target.select()}
                 onChange={e => setQuantity(e.target.value)}
                 placeholder="e.g. 150, 4, 40"
                 className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100 rounded-xl h-9"

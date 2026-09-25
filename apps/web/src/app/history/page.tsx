@@ -327,7 +327,11 @@ export default function HistoryPage() {
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
               <Input
-                type="text"
+                type="search"
+                inputMode="search"
+                autoCorrect="off"
+                autoCapitalize="none"
+                enterKeyHint="search"
                 placeholder="Search by routine, reason, note, or exercise..."
                 value={searchQuery}
                 onChange={handleSearchChange}

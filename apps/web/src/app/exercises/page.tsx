@@ -404,7 +404,11 @@ export default function LibraryPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500 pointer-events-none" />
                 <Input
-                  type="text"
+                  type="search"
+                  inputMode="search"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  enterKeyHint="search"
                   placeholder="Search exercises..."
                   value={exSearchQuery}
                   onChange={e => setExSearchQuery(e.target.value)}
@@ -652,7 +656,11 @@ export default function LibraryPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500 pointer-events-none" />
               <Input
-                type="text"
+                type="search"
+                inputMode="search"
+                autoCorrect="off"
+                autoCapitalize="none"
+                enterKeyHint="search"
                 placeholder="Search foods, macros, benefits, notes..."
                 value={foodSearchQuery}
                 onChange={e => setFoodSearchQuery(e.target.value)}

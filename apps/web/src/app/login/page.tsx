@@ -134,6 +134,11 @@ function LoginFormContent() {
             <Input
               id="email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
               placeholder="Email address"
               value={email}
@@ -153,6 +158,7 @@ function LoginFormContent() {
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
               required
               placeholder="Enter Password"
               value={password}
@@ -177,7 +183,7 @@ function LoginFormContent() {
               type="checkbox"
               checked={rememberMe}
               onChange={e => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-emerald-600 focus:ring-emerald-800 accent-emerald-600 cursor-pointer"
+              className="h-5 w-5 rounded-md border-zinc-700 bg-zinc-900 text-emerald-600 focus:ring-emerald-800 accent-emerald-600 cursor-pointer touch-manipulation"
             />
             <span>Remember me</span>
           </label>
