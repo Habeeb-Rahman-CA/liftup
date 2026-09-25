@@ -41,11 +41,54 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://liftup.app';
+
 export const metadata: Metadata = {
-  title: 'LiftUp - Workout & Strength Tracking',
-  description: 'Minimalist strength & workout tracking mobile PWA and web platform.',
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: 'LiftUp - Workout & Strength Tracking',
+    template: '%s | LiftUp',
+  },
+  description:
+    'Minimalist strength & workout tracking mobile PWA. Log workouts, progressive overload benchmarks, and daily nutrition.',
   applicationName: 'LiftUp',
+  keywords: [
+    'workout tracker',
+    'gym log',
+    'progressive overload',
+    'strength training',
+    'workout routines',
+    'meal planning',
+    'nutrition tracker',
+    'PWA workout app',
+  ],
+  authors: [{ name: 'LiftUp' }],
+  creator: 'LiftUp',
   manifest: '/manifest.webmanifest',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: baseUrl,
+    siteName: 'LiftUp',
+    title: 'LiftUp - Workout & Strength Tracking',
+    description:
+      'Minimalist strength & workout tracking mobile PWA. Log workouts, progressive overload benchmarks, and daily nutrition.',
+    images: [
+      {
+        url: '/hajime-hero-bg.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'LiftUp - Minimalist Workout Tracking',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LiftUp - Workout & Strength Tracking',
+    description:
+      'Minimalist strength & workout tracking mobile PWA. Log workouts, progressive overload benchmarks, and daily nutrition.',
+    images: ['/hajime-hero-bg.jpg'],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
