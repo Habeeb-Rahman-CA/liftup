@@ -4,14 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import {
-  LayoutDashboard,
-  Dumbbell,
-  History,
-  TrendingUp,
-  UtensilsCrossed,
-  Layers,
-} from 'lucide-react';
+import { LayoutDashboard, Dumbbell, TrendingUp, UtensilsCrossed, Layers } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const { user, loading } = useAuth();
@@ -70,16 +63,6 @@ export const BottomNav: React.FC = () => {
         >
           <UtensilsCrossed className="h-4.5 w-4.5" />
           <span className="text-[9px] font-medium">Meals</span>
-        </Link>
-
-        <Link
-          href="/history"
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-            pathname === '/history' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
-          }`}
-        >
-          <History className="h-4.5 w-4.5" />
-          <span className="text-[9px] font-medium">History</span>
         </Link>
 
         <Link

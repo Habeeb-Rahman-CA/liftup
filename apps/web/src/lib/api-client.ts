@@ -1,5 +1,7 @@
 import { getCookie, deleteCookie } from 'cookies-next';
 import type {
+  UserProfile,
+  UpdateProfilePayload,
   ExerciseDto,
   CreateExercisePayload,
   UpdateExercisePayload,
@@ -913,6 +915,31 @@ export const foodsApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to delete food item');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+};
+
+export const usersApi = {
+  async getProfile(): Promise<UserProfile> {
+    const res = await fetchWithAuth('/api/v1/users/profile');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch user profile');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
+    const res = await fetchWithAuth('/api/v1/users/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update profile');
     }
     const data = await res.json();
     return data.data || data;

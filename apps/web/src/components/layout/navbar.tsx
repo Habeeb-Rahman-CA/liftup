@@ -8,18 +8,16 @@ import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
-  LogOut,
   Dumbbell,
-  Calendar,
   History,
   TrendingUp,
   UtensilsCrossed,
-  Apple,
   Layers,
 } from 'lucide-react';
+import { UserProfileMenu } from './user-profile-menu';
 
 export const Navbar: React.FC = () => {
-  const { user, logout, loading } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
 
   // Top navbar only displays inside the authenticated application
@@ -42,7 +40,7 @@ export const Navbar: React.FC = () => {
           />
         </Link>
 
-        {/* In-app Controls */}
+        {/* In-app Controls & User Profile */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <Link href="/dashboard" className="hidden sm:inline-flex">
             <Button
@@ -108,36 +106,6 @@ export const Navbar: React.FC = () => {
             </Button>
           </Link>
 
-          <Link href="/foods" className="hidden sm:inline-flex">
-            <Button
-              variant={pathname.startsWith('/foods') ? 'default' : 'outline'}
-              size="sm"
-              className={
-                pathname.startsWith('/foods')
-                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
-                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
-              }
-            >
-              <Apple className="h-3.5 w-3.5 mr-1.5" />
-              Food Library
-            </Button>
-          </Link>
-
-          <Link href="/history" className="hidden sm:inline-flex">
-            <Button
-              variant={pathname === '/history' ? 'default' : 'outline'}
-              size="sm"
-              className={
-                pathname === '/history'
-                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
-                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
-              }
-            >
-              <History className="h-3.5 w-3.5 mr-1.5" />
-              History
-            </Button>
-          </Link>
-
           <Link href="/progress" className="hidden sm:inline-flex">
             <Button
               variant={pathname === '/progress' ? 'default' : 'outline'}
@@ -152,21 +120,30 @@ export const Navbar: React.FC = () => {
               Progress
             </Button>
           </Link>
-          <div className="flex items-center gap-1.5 px-1.5 sm:px-2 sm:border-l sm:border-zinc-800 text-xs text-zinc-400">
-            <span className="truncate max-w-[120px] sm:max-w-none">
-              {user.name || user.email.split('@')[0]}
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={logout}
-            className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 h-8 px-2 text-xs"
-            title="Sign Out"
+
+          {/* History Icon Button (On Left of User Profile in Topbar) */}
+          <Link
+            href="/history"
+            className="flex items-center"
+            title="History & Logs"
+            aria-label="History and logs"
           >
-            <LogOut className="h-3.5 w-3.5 sm:mr-1" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </Button>
+            <button
+              type="button"
+              className={`h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-full flex items-center justify-center transition-all border select-none ${
+                pathname === '/history'
+                  ? 'bg-zinc-800 border-zinc-600 text-zinc-100 shadow-inner'
+                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-850 hover:border-zinc-700'
+              }`}
+            >
+              <History className="h-4 w-4" />
+            </button>
+          </Link>
+
+          {/* User Profile Section (Avatar with Popover Menu) */}
+          <div className="pl-1 sm:pl-1.5 sm:border-l sm:border-zinc-800">
+            <UserProfileMenu user={user} />
+          </div>
         </div>
       </div>
     </header>
