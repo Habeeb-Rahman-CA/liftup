@@ -6,6 +6,8 @@ import { ActiveWorkoutProvider } from '@/context/active-workout-context';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { ActiveWorkoutBar } from '@/components/layout/active-workout-bar';
+import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
+import { OfflineSyncIndicator } from '@/components/pwa/offline-sync-indicator';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -63,6 +65,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex-1 flex flex-col">{children}</div>
             <ActiveWorkoutBar />
             <BottomNav />
+            <ServiceWorkerRegister />
+            <OfflineSyncIndicator />
           </ActiveWorkoutProvider>
         </AuthProvider>
       </body>

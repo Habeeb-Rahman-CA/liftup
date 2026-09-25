@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useActiveWorkout } from '@/context/active-workout-context';
 import { sessionsApi } from '@/lib/api-client';
+import { offlineDB } from '@/lib/offline-db';
+import { syncEngine } from '@/lib/sync-engine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -125,7 +127,7 @@ export default function ActiveWorkoutPage() {
       // Optimistically update local session
       setActiveSession(prev => {
         if (!prev || !prev.exerciseLogs) return prev;
-        return {
+        const updated = {
           ...prev,
           exerciseLogs: prev.exerciseLogs.map(log => {
             if (log.id !== exerciseLogId) return log;
@@ -135,9 +137,48 @@ export default function ActiveWorkoutPage() {
             };
           }),
         };
+        offlineDB.saveActiveSession(updated).catch(() => {});
+        return updated;
       });
-    } catch (err: any) {
-      setError(err.message || 'Failed to add set');
+    } catch {
+      // Offline fallback: create local set and queue mutation
+      const tempSet: SetLogDto = {
+        id: `temp_set_${Date.now()}`,
+        exerciseLogId,
+        setNumber:
+          (activeSession.exerciseLogs?.find(l => l.id === exerciseLogId)?.setLogs?.length || 0) + 1,
+        type,
+        weight: 0,
+        reps: 0,
+        rpe: undefined,
+        completed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setActiveSession(prev => {
+        if (!prev || !prev.exerciseLogs) return prev;
+        const updated = {
+          ...prev,
+          exerciseLogs: prev.exerciseLogs.map(log => {
+            if (log.id !== exerciseLogId) return log;
+            return {
+              ...log,
+              setLogs: [...(log.setLogs || []), tempSet],
+            };
+          }),
+        };
+        offlineDB.saveActiveSession(updated).catch(() => {});
+        return updated;
+      });
+
+      await offlineDB.enqueueSyncItem({
+        actionType: 'CREATE_SET',
+        endpoint: `/api/v1/sessions/exercise-logs/${exerciseLogId}/sets`,
+        method: 'POST',
+        payload: { type },
+      });
+      syncEngine.updatePendingCount();
     }
   };
 
@@ -145,10 +186,10 @@ export default function ActiveWorkoutPage() {
   const handleUpdateSet = async (setId: string, payload: Partial<SetLogDto>) => {
     if (!activeSession) return;
 
-    // Optimistically update local state immediately
+    // Optimistically update local state & IndexedDB immediately
     setActiveSession(prev => {
       if (!prev || !prev.exerciseLogs) return prev;
-      return {
+      const updated = {
         ...prev,
         exerciseLogs: prev.exerciseLogs.map(log => ({
           ...log,
@@ -158,13 +199,21 @@ export default function ActiveWorkoutPage() {
           }),
         })),
       };
+      offlineDB.saveActiveSession(updated).catch(() => {});
+      return updated;
     });
 
     try {
       await sessionsApi.updateSet(setId, payload);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update set');
-      await refreshActiveSession();
+    } catch {
+      // Network drop: enqueue update mutation for sync queue
+      await offlineDB.enqueueSyncItem({
+        actionType: 'UPDATE_SET',
+        endpoint: `/api/v1/sessions/sets/${setId}`,
+        method: 'PATCH',
+        payload,
+      });
+      syncEngine.updatePendingCount();
     }
   };
 
@@ -172,23 +221,30 @@ export default function ActiveWorkoutPage() {
   const handleDeleteSet = async (setId: string) => {
     if (!activeSession) return;
 
-    // Optimistically remove from state
+    // Optimistically remove from state & IndexedDB
     setActiveSession(prev => {
       if (!prev || !prev.exerciseLogs) return prev;
-      return {
+      const updated = {
         ...prev,
         exerciseLogs: prev.exerciseLogs.map(log => ({
           ...log,
           setLogs: (log.setLogs || []).filter(s => s.id !== setId),
         })),
       };
+      offlineDB.saveActiveSession(updated).catch(() => {});
+      return updated;
     });
 
     try {
       await sessionsApi.deleteSet(setId);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete set');
-      await refreshActiveSession();
+    } catch {
+      // Enqueue delete mutation
+      await offlineDB.enqueueSyncItem({
+        actionType: 'DELETE_SET',
+        endpoint: `/api/v1/sessions/sets/${setId}`,
+        method: 'DELETE',
+      });
+      syncEngine.updatePendingCount();
     }
   };
 
@@ -204,11 +260,24 @@ export default function ActiveWorkoutPage() {
     setError(null);
     try {
       await sessionsApi.complete(activeSession.id, { note, durationMinutes });
+      await offlineDB.clearActiveSession();
       setActiveSession(null);
       setFinishModalOpen(false);
       router.push('/dashboard?completed=true');
-    } catch (err: any) {
-      setError(err.message || 'Failed to finish workout');
+    } catch {
+      // Offline completion: queue finish action & navigate safely
+      await offlineDB.enqueueSyncItem({
+        actionType: 'COMPLETE_WORKOUT',
+        endpoint: `/api/v1/sessions/${activeSession.id}/complete`,
+        method: 'POST',
+        payload: { note, durationMinutes },
+      });
+      await offlineDB.clearActiveSession();
+      setActiveSession(null);
+      setFinishModalOpen(false);
+      syncEngine.updatePendingCount();
+      router.push('/dashboard?completed=true&offline=true');
+    } finally {
       setIsFinishing(false);
     }
   };

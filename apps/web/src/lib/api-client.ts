@@ -1,4 +1,5 @@
 import { getCookie, deleteCookie } from 'cookies-next';
+import { offlineDB } from './offline-db';
 import type {
   UserProfile,
   UpdateProfilePayload,
@@ -130,15 +131,35 @@ export const exercisesApi = {
     const qs = searchParams.toString();
     const url = `/api/v1/exercises${qs ? `?${qs}` : ''}`;
 
-    const res = await fetchWithAuth(url, { cache: 'no-store' });
+    try {
+      const res = await fetchWithAuth(url, { cache: 'no-store' });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to fetch exercises');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to fetch exercises');
+      }
+
+      const data = await res.json();
+      const list = data.data || data;
+      if (Array.isArray(list) && list.length > 0) {
+        offlineDB.cacheExercises(list).catch(() => {});
+      }
+      return list;
+    } catch (err: any) {
+      const cached = await offlineDB.getCachedExercises();
+      if (cached && cached.length > 0) {
+        let filtered = cached;
+        if (params?.category && params.category !== 'ALL') {
+          filtered = filtered.filter(e => e.category === params.category);
+        }
+        if (params?.search) {
+          const s = params.search.toLowerCase();
+          filtered = filtered.filter(e => e.name.toLowerCase().includes(s));
+        }
+        return filtered;
+      }
+      throw err;
     }
-
-    const data = await res.json();
-    return data.data || data;
   },
 
   async getCategories(): Promise<{ category: string; count: number; activeCount: number }[]> {
@@ -384,13 +405,25 @@ export const schedulesApi = {
 
 export const sessionsApi = {
   async getActive(): Promise<WorkoutSessionDto | null> {
-    const res = await fetchWithAuth('/api/v1/sessions/active');
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to check active workout session');
+    try {
+      const res = await fetchWithAuth('/api/v1/sessions/active');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to check active workout session');
+      }
+      const data = await res.json();
+      const session = data.data || data;
+      if (session) {
+        offlineDB.saveActiveSession(session).catch(() => {});
+      } else {
+        offlineDB.clearActiveSession().catch(() => {});
+      }
+      return session;
+    } catch (err: any) {
+      const cached = await offlineDB.getActiveSession();
+      if (cached) return cached;
+      throw err;
     }
-    const data = await res.json();
-    return data.data || data;
   },
 
   async start(payload: StartWorkoutSessionPayload): Promise<WorkoutSessionDto> {
@@ -853,13 +886,34 @@ export const foodsApi = {
     if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
-    const res = await fetchWithAuth(`/api/v1/foods${queryString}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to fetch food library');
+
+    try {
+      const res = await fetchWithAuth(`/api/v1/foods${queryString}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to fetch food library');
+      }
+      const data = await res.json();
+      const list = data.data || data;
+      if (Array.isArray(list) && list.length > 0) {
+        offlineDB.cacheFoods(list).catch(() => {});
+      }
+      return list;
+    } catch (err: any) {
+      const cached = await offlineDB.getCachedFoods();
+      if (cached && cached.length > 0) {
+        let filtered = cached;
+        if (params?.category && params.category !== 'ALL') {
+          filtered = filtered.filter(f => f.category === params.category);
+        }
+        if (params?.search) {
+          const s = params.search.toLowerCase();
+          filtered = filtered.filter(f => f.name.toLowerCase().includes(s));
+        }
+        return filtered;
+      }
+      throw err;
     }
-    const data = await res.json();
-    return data.data || data;
   },
 
   async getCategories(): Promise<FoodCategoryStatsDto[]> {

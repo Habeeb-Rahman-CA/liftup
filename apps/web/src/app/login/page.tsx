@@ -209,7 +209,7 @@ function LoginFormContent() {
                 <span>Signing in...</span>
               </div>
             ) : (
-              'Log In'
+              'Sign In'
             )}
           </Button>
         </div>
