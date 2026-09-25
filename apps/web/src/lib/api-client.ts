@@ -4,6 +4,9 @@ import {
   OfflineError,
   TimeoutError,
   UnauthorizedError,
+  ForbiddenError,
+  NotFoundError,
+  RateLimitError,
   ServerError,
   ValidationError,
   normalizeNetworkError,
@@ -129,9 +132,31 @@ async function fetchWithAuth(
       throw new UnauthorizedError();
     }
 
+    if (res.status === 403) {
+      const err = await res.json().catch(() => ({}));
+      throw new ForbiddenError(err.message || 'Access denied');
+    }
+
+    if (res.status === 404) {
+      const err = await res.json().catch(() => ({}));
+      throw new NotFoundError(err.message || 'Resource not found');
+    }
+
+    if (res.status === 408) {
+      throw new TimeoutError('Request timed out');
+    }
+
+    if (res.status === 429) {
+      const err = await res.json().catch(() => ({}));
+      throw new RateLimitError(err.message || 'Too many requests');
+    }
+
     if (res.status >= 500) {
       const err = await res.json().catch(() => ({}));
-      throw new ServerError(res.status, err.message || 'Server is temporarily unavailable');
+      throw new ServerError(
+        res.status,
+        err.message || 'Database or server temporarily unavailable',
+      );
     }
 
     return res;

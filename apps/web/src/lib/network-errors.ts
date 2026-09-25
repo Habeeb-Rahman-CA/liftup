@@ -9,6 +9,7 @@ export type NetworkErrorKind =
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
+  | 'RATE_LIMITED'
   | 'SERVER_ERROR'
   | 'VALIDATION_ERROR'
   | 'UNKNOWN';
@@ -61,6 +62,7 @@ export class TimeoutError extends AppNetworkError {
   constructor(message = 'Network request timed out') {
     super({
       kind: 'TIMEOUT',
+      status: 408,
       message,
       userTitle: 'Connection timeout',
       userMessage: 'Server took too long to respond. Your data is preserved locally.',
@@ -82,6 +84,45 @@ export class UnauthorizedError extends AppNetworkError {
   }
 }
 
+export class ForbiddenError extends AppNetworkError {
+  constructor(message = 'Access forbidden') {
+    super({
+      kind: 'FORBIDDEN',
+      status: 403,
+      message,
+      userTitle: 'Access Denied',
+      userMessage: 'You do not have permission to modify or access this record.',
+      isSavedLocally: false,
+    });
+  }
+}
+
+export class NotFoundError extends AppNetworkError {
+  constructor(message = 'Resource not found') {
+    super({
+      kind: 'NOT_FOUND',
+      status: 404,
+      message,
+      userTitle: 'Not Found',
+      userMessage: 'The requested workout, exercise, or record could not be found.',
+      isSavedLocally: false,
+    });
+  }
+}
+
+export class RateLimitError extends AppNetworkError {
+  constructor(message = 'Too many requests') {
+    super({
+      kind: 'RATE_LIMITED',
+      status: 429,
+      message,
+      userTitle: 'Rate limit exceeded',
+      userMessage: 'Too many requests in a short period. Please wait a moment before trying again.',
+      isSavedLocally: false,
+    });
+  }
+}
+
 export class ServerError extends AppNetworkError {
   constructor(status = 500, message = 'Internal server error') {
     super({
@@ -89,7 +130,8 @@ export class ServerError extends AppNetworkError {
       status,
       message,
       userTitle: 'Server temporarily unavailable',
-      userMessage: 'Our servers are experiencing high load. Your progress is saved on this device.',
+      userMessage:
+        'Database or server is temporarily unreachable. Your progress is preserved locally.',
       isSavedLocally: true,
     });
   }
@@ -126,7 +168,7 @@ export function normalizeNetworkError(err: any): AppNetworkError {
     return new OfflineError();
   }
 
-  // 3. AbortController timeout
+  // 3. AbortController timeout (408)
   if (
     err?.name === 'AbortError' ||
     err?.message?.toLowerCase().includes('timeout') ||
@@ -138,6 +180,22 @@ export function normalizeNetworkError(err: any): AppNetworkError {
   // 4. HTTP status based detection
   if (err?.status === 401) {
     return new UnauthorizedError(err.message);
+  }
+
+  if (err?.status === 403) {
+    return new ForbiddenError(err.message);
+  }
+
+  if (err?.status === 404) {
+    return new NotFoundError(err.message);
+  }
+
+  if (err?.status === 408) {
+    return new TimeoutError(err.message);
+  }
+
+  if (err?.status === 429) {
+    return new RateLimitError(err.message);
   }
 
   if (err?.status >= 500) {
