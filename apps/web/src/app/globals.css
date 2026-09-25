@@ -77,9 +77,14 @@
 
 @layer base {
   * {
-    @apply border-border outline-none;
+    @apply border-border;
     -webkit-tap-highlight-color: transparent;
   }
+  
+  :focus-visible {
+    @apply outline-none ring-2 ring-emerald-500 ring-offset-2 ring-offset-zinc-950;
+  }
+
   html {
     @apply scroll-smooth;
     text-size-adjust: 100%;
@@ -88,11 +93,9 @@
   body {
     @apply bg-background text-foreground font-sans antialiased min-h-screen selection:bg-emerald-950 selection:text-emerald-300;
     overscroll-behavior-y: none;
-    -webkit-user-select: none;
-    user-select: none;
   }
-  /* Re-enable text selection for actual readable/editable content */
-  p, h1, h2, h3, h4, h5, h6, span, input, textarea, [contenteditable="true"] {
+  /* Text selection allowed for interactive/readable elements */
+  p, h1, h2, h3, h4, h5, h6, span, input, textarea, label, [contenteditable="true"] {
     -webkit-user-select: auto;
     user-select: auto;
   }
@@ -100,6 +103,20 @@
     -webkit-touch-callout: none;
     user-select: none;
     -webkit-user-select: none;
+  }
+}
+
+/* ========================================================================= */
+/* Accessibility: Prefers Reduced Motion                                      */
+/* ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
