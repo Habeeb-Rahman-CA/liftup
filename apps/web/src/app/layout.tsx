@@ -30,6 +30,7 @@ export const metadata: Metadata = {
   title: 'LiftUp - Workout & Strength Tracking',
   description: 'Minimalist strength & workout tracking mobile PWA and web platform.',
   applicationName: 'LiftUp',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
