@@ -3,7 +3,7 @@
  * Robust offline shell caching, intelligent cache invalidation, and zero sensitive API caching.
  */
 
-const CACHE_VERSION = 'liftup-v1.0.0';
+const CACHE_VERSION = 'liftup-v1.0.1';
 const STATIC_CACHE = `liftup-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `liftup-runtime-${CACHE_VERSION}`;
 const OFFLINE_FALLBACK = '/offline';
