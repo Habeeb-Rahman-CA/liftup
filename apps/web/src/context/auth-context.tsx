@@ -79,8 +79,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const saveAuthSession = (authData: AuthResponse) => {
     const { user: profile, tokens } = authData;
-    setCookie(TOKEN_COOKIE_KEY, tokens.accessToken, { maxAge: tokens.expiresIn, path: '/' });
-    setCookie(REFRESH_COOKIE_KEY, tokens.refreshToken, { maxAge: 30 * 24 * 60 * 60, path: '/' });
+    const isProd = process.env.NODE_ENV === 'production';
+    setCookie(TOKEN_COOKIE_KEY, tokens.accessToken, {
+      maxAge: tokens.expiresIn,
+      path: '/',
+      sameSite: 'lax',
+      secure: isProd,
+    });
+    setCookie(REFRESH_COOKIE_KEY, tokens.refreshToken, {
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+      sameSite: 'lax',
+      secure: isProd,
+    });
     setToken(tokens.accessToken);
     setUser(profile);
   };
