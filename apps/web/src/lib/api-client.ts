@@ -48,6 +48,11 @@ import type {
   ToggleMealItemCompletionDto,
   UpdateMealDayNoteDto,
   MealHistoryResponseDto,
+  FoodDto,
+  FoodCategoryStatsDto,
+  CreateFoodDto,
+  UpdateFoodDto,
+  FoodQueryParams,
   PaginatedResult,
 } from '@liftup/types';
 
@@ -817,6 +822,84 @@ export const mealsApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to remove food item');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+};
+
+export const foodsApi = {
+  async getAll(params?: FoodQueryParams): Promise<FoodDto[]> {
+    const query = new URLSearchParams();
+    if (params?.category) query.set('category', params.category);
+    if (params?.search) query.set('search', params.search);
+    if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
+    if (params?.sortBy) query.set('sortBy', params.sortBy);
+    if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const res = await fetchWithAuth(`/api/v1/foods${queryString}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch food library');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getCategories(): Promise<FoodCategoryStatsDto[]> {
+    const res = await fetchWithAuth('/api/v1/foods/categories');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch food categories');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async getById(id: string): Promise<FoodDto> {
+    const res = await fetchWithAuth(`/api/v1/foods/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch food details');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async create(payload: CreateFoodDto): Promise<FoodDto> {
+    const res = await fetchWithAuth('/api/v1/foods', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to create food item');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async update(id: string, payload: UpdateFoodDto): Promise<FoodDto> {
+    const res = await fetchWithAuth(`/api/v1/foods/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to update food item');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  async delete(id: string): Promise<{ message: string; id: string }> {
+    const res = await fetchWithAuth(`/api/v1/foods/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to delete food item');
     }
     const data = await res.json();
     return data.data || data;

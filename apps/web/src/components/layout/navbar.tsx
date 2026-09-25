@@ -14,6 +14,7 @@ import {
   History,
   TrendingUp,
   UtensilsCrossed,
+  Apple,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -99,6 +100,21 @@ export const Navbar: React.FC = () => {
             >
               <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" />
               Meals
+            </Button>
+          </Link>
+
+          <Link href="/foods" className="hidden sm:inline-flex">
+            <Button
+              variant={pathname.startsWith('/foods') ? 'default' : 'outline'}
+              size="sm"
+              className={
+                pathname.startsWith('/foods')
+                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
+              }
+            >
+              <Apple className="h-3.5 w-3.5 mr-1.5" />
+              Food Library
             </Button>
           </Link>
 

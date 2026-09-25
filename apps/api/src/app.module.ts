@@ -11,6 +11,7 @@ import { SchedulesModule } from './schedules/schedules.module.js';
 import { SessionsModule } from './sessions/sessions.module.js';
 import { ProgressionModule } from './progression/progression.module.js';
 import { MealsModule } from './meals/meals.module.js';
+import { FoodsModule } from './foods/foods.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MealsModule } from './meals/meals.module.js';
     SessionsModule,
     ProgressionModule,
     MealsModule,
+    FoodsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

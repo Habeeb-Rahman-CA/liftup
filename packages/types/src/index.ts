@@ -662,6 +662,85 @@ export interface MealHistoryResponseDto {
 }
 
 // -----------------------------------------------------------------------------
+// FOOD DOMAIN TYPES (PHASE 9)
+// -----------------------------------------------------------------------------
+
+export type FoodCategory = 'PROTEIN' | 'CARBS' | 'FATS' | 'SUPERFOODS' | string;
+
+export interface FoodDto {
+  id: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  servingSize?: number | null;
+  servingUnit?: string | null;
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  fiber?: number | null;
+  benefits?: string | null;
+  notes?: string | null;
+  orderIndex: number;
+  isActive: boolean;
+  isCustom: boolean;
+  userId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FoodCategoryStatsDto {
+  category: string;
+  count: number;
+  activeCount: number;
+}
+
+export interface CreateFoodDto {
+  name: string;
+  category: string;
+  description?: string;
+  servingSize?: number;
+  servingUnit?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  benefits?: string;
+  notes?: string;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateFoodDto {
+  name?: string;
+  category?: string;
+  description?: string;
+  servingSize?: number;
+  servingUnit?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  benefits?: string;
+  notes?: string;
+  orderIndex?: number;
+  isActive?: boolean;
+}
+
+export interface FoodQueryParams {
+  category?: string;
+  search?: string;
+  isActive?: boolean | string;
+  sortBy?:
+    'orderIndex' | 'name' | 'category' | 'calories' | 'protein' | 'carbs' | 'fat' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+// -----------------------------------------------------------------------------
 // PAGINATION TYPES
 // -----------------------------------------------------------------------------
 export interface PaginationParams {

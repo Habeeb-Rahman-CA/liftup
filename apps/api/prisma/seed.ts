@@ -462,6 +462,66 @@ async function seedMealPlans() {
   }
 }
 
+async function seedFoodLibrary() {
+  console.log('Seeding master food library into database...');
+  const { INITIAL_FOODS } = await import('../src/foods/default-foods.js');
+
+  for (const food of INITIAL_FOODS) {
+    const existing = await prisma.food.findFirst({
+      where: {
+        name: { equals: food.name, mode: 'insensitive' },
+        category: { equals: food.category, mode: 'insensitive' },
+        isCustom: false,
+      },
+    });
+
+    if (existing) {
+      await prisma.food.update({
+        where: { id: existing.id },
+        data: {
+          description: food.description,
+          servingSize: food.servingSize,
+          servingUnit: food.servingUnit,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat,
+          fiber: food.fiber,
+          benefits: food.benefits,
+          notes: food.notes,
+          orderIndex: food.orderIndex,
+          isActive: true,
+        },
+      });
+      console.log(`[UPDATED FOOD] ${food.name} (${food.category})`);
+    } else {
+      await prisma.food.create({
+        data: {
+          name: food.name,
+          category: food.category,
+          description: food.description,
+          servingSize: food.servingSize,
+          servingUnit: food.servingUnit,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat,
+          fiber: food.fiber,
+          benefits: food.benefits,
+          notes: food.notes,
+          orderIndex: food.orderIndex,
+          isActive: true,
+          isCustom: false,
+        },
+      });
+      console.log(`[CREATED FOOD] ${food.name} (${food.category})`);
+    }
+  }
+
+  const foodCount = await prisma.food.count();
+  console.log(`Successfully seeded food library! Total foods: ${foodCount}`);
+}
+
 async function main() {
   console.log('Seeding initial exercise library into database...');
 
@@ -499,6 +559,7 @@ async function main() {
   );
 
   await seedMealPlans();
+  await seedFoodLibrary();
 }
 
 main()

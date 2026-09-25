@@ -53,6 +53,7 @@ model User {
   // Meal Domain Relations
   mealPlans        MealPlan[]
   mealDayLogs      MealDayLog[]
+  foods            Food[]
 }
 
 model RefreshToken {
@@ -248,6 +249,8 @@ model MealItem {
   id              String        @id @default(cuid())
   mealId          String
   meal            Meal          @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  foodId          String?
+  food            Food?         @relation(fields: [foodId], references: [id], onDelete: SetNull)
   name            String        // e.g., "Whole Egg", "Chicken Breast", "Oats", "Rice"
   quantity        Float?        // e.g., 4, 150, 40, 10
   unit            String?       // e.g., "pcs", "g", "ml", "Rotis/Chappati"
@@ -258,6 +261,7 @@ model MealItem {
   updatedAt       DateTime      @updatedAt
 
   @@index([mealId])
+  @@index([foodId])
   @@index([orderIndex])
 }
 
@@ -317,6 +321,41 @@ model MealItemLog {
 
   @@index([mealLogId])
   @@index([mealItemId])
+}
+
+// -----------------------------------------------------------------------------
+// FOOD / NUTRITION DOMAIN
+// -----------------------------------------------------------------------------
+
+/// Master food library catalog item
+model Food {
+  id          String     @id @default(cuid())
+  name        String
+  category    String     // PROTEIN, CARBS, FATS, SUPERFOODS
+  description String?
+  servingSize Float?     @default(100) // e.g., 100
+  servingUnit String?    @default("g") // e.g., "g", "pcs", "ml", "tbsp"
+  calories    Float?     // kcal per serving
+  protein     Float?     // g
+  carbs       Float?     // g
+  fat         Float?     // g
+  fiber       Float?     // g
+  benefits    String?    // Health & superfood benefits
+  notes       String?    // Preparation/culinary notes
+  orderIndex  Int        @default(0)
+  isActive    Boolean    @default(true)
+  isCustom    Boolean    @default(false)
+  userId      String?    // custom foods created by user
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealItems   MealItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([category])
+  @@index([name])
+  @@index([userId])
+  @@index([isActive])
+  @@index([orderIndex])
 }
 
 // -----------------------------------------------------------------------------

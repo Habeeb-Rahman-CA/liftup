@@ -20,6 +20,7 @@ import {
   Loader2,
   Check,
   Award,
+  Apple,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -256,6 +257,17 @@ export default function MealsPage() {
             Track daily meals, food quantities, completion status, and meal plans.
           </p>
         </div>
+
+        <Link href="/foods">
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs h-8 px-3 rounded-xl font-medium gap-1.5 self-start sm:self-auto"
+          >
+            <Apple className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Food Library</span>
+          </Button>
+        </Link>
       </div>
 
       {/* Navigation Tabs (3 in a single row without horizontal scroll) */}

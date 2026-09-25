@@ -19,13 +19,9 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  SlidersHorizontal,
-  ToggleLeft,
-  ToggleRight,
   ChevronDown,
   FileText,
-  Layers,
-  History,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { ExerciseHistoryInline } from '@/components/exercises/exercise-history-inline';
 import type { ExerciseDto, CreateExercisePayload, UpdateExercisePayload } from '@liftup/types';
@@ -39,7 +35,6 @@ export default function ExercisesPage() {
     { category: string; count: number; activeCount: number }[]
   >([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'true' | 'false'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'category' | 'orderIndex'>('orderIndex');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -69,7 +64,6 @@ export default function ExercisesPage() {
         exercisesApi.getAll({
           category: selectedCategory === 'ALL' ? undefined : selectedCategory,
           search: searchQuery.trim() || undefined,
-          isActive: statusFilter === 'all' ? undefined : statusFilter,
           sortBy,
           sortOrder,
         }),
@@ -82,7 +76,7 @@ export default function ExercisesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, searchQuery, statusFilter, sortBy, sortOrder]);
+  }, [selectedCategory, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
     if (user) {
@@ -117,20 +111,6 @@ export default function ExercisesPage() {
     }
   };
 
-  const handleToggleActive = async (exercise: ExerciseDto) => {
-    try {
-      setActionLoadingId(exercise.id);
-      await exercisesApi.toggleActive(exercise.id);
-      const newStatus = !exercise.isActive ? 'activated' : 'deactivated';
-      setNotification({ type: 'success', message: `"${exercise.name}" is now ${newStatus}.` });
-      await loadData();
-    } catch (err) {
-      setNotification({ type: 'error', message: (err as Error).message });
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
   const executeDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -144,15 +124,6 @@ export default function ExercisesPage() {
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  // Cycle status: All -> Active -> Inactive -> All
-  const cycleStatusFilter = () => {
-    setStatusFilter(prev => {
-      if (prev === 'all') return 'true';
-      if (prev === 'true') return 'false';
-      return 'all';
-    });
   };
 
   // Cycle sort: Default -> Name (A-Z) -> Category -> Default
@@ -202,7 +173,6 @@ export default function ExercisesPage() {
           </button>
         </div>
       )}
-
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -213,8 +183,7 @@ export default function ExercisesPage() {
             Browse and manage movements, muscle groups, and default target reps.
           </p>
         </div>
-      </div>
-
+      </div>{' '}
       {/* Compact Search & Filter Toolbar */}
       <div className="space-y-2.5">
         <div className="flex items-center gap-2">
@@ -237,33 +206,6 @@ export default function ExercisesPage() {
               </button>
             )}
           </div>
-
-          {/* Single-Click Cycling Status Button (All → Active → Inactive → All) */}
-          <button
-            type="button"
-            onClick={cycleStatusFilter}
-            className={`h-9 px-3 rounded-xl border text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors select-none ${
-              statusFilter === 'true'
-                ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
-                : statusFilter === 'false'
-                  ? 'bg-zinc-900 border-zinc-700 text-zinc-400'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-850'
-            }`}
-            title="Click to cycle status filter (All → Active → Inactive)"
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                statusFilter === 'true'
-                  ? 'bg-emerald-400'
-                  : statusFilter === 'false'
-                    ? 'bg-zinc-500'
-                    : 'bg-emerald-500/50'
-              }`}
-            />
-            <span>
-              {statusFilter === 'true' ? 'Active' : statusFilter === 'false' ? 'Inactive' : 'All'}
-            </span>
-          </button>
 
           {/* Minimal Single-Click Sort Toggle */}
           <button
@@ -307,8 +249,7 @@ export default function ExercisesPage() {
           ))}
         </div>
       </div>
-
-      {/* Exercise Master List (Clean, without reorder clutter) */}
+      {/* Exercise Master List */}
       <div className="space-y-2">
         {loading ? (
           <div className="p-10 text-center space-y-3 bg-zinc-900/50 rounded-2xl border border-zinc-800/80">
@@ -321,19 +262,18 @@ export default function ExercisesPage() {
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-zinc-300">No exercises found</h3>
               <p className="text-xs text-zinc-500">
-                {searchQuery || selectedCategory !== 'ALL' || statusFilter !== 'all'
+                {searchQuery || selectedCategory !== 'ALL'
                   ? 'Try clearing or modifying your filter criteria.'
                   : 'Get started by creating your first exercise.'}
               </p>
             </div>
-            {(searchQuery || selectedCategory !== 'ALL' || statusFilter !== 'all') && (
+            {(searchQuery || selectedCategory !== 'ALL') && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('ALL');
-                  setStatusFilter('all');
                 }}
                 className="border-zinc-800 bg-zinc-900 text-zinc-300 text-xs h-8"
               >
@@ -350,11 +290,9 @@ export default function ExercisesPage() {
               <div
                 key={exercise.id}
                 className={`rounded-xl border transition-all duration-200 overflow-hidden ${
-                  exercise.isActive
-                    ? isExpanded
-                      ? 'bg-zinc-900 border-zinc-700'
-                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-750'
-                    : 'bg-zinc-950/60 border-zinc-900 opacity-60'
+                  isExpanded
+                    ? 'bg-zinc-900 border-zinc-700'
+                    : 'bg-zinc-900 border-zinc-800 hover:border-zinc-750'
                 }`}
               >
                 {/* Main Card Header Row (Click to Expand / Collapse) */}
@@ -371,14 +309,6 @@ export default function ExercisesPage() {
                       <Badge className="bg-zinc-950 text-emerald-400 border-zinc-800 text-[10px] font-medium uppercase px-2 py-0">
                         {exercise.category}
                       </Badge>
-                      {!exercise.isActive && (
-                        <Badge
-                          variant="outline"
-                          className="border-zinc-800 text-zinc-500 text-[10px] px-1.5 py-0"
-                        >
-                          Inactive
-                        </Badge>
-                      )}
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-zinc-400 flex-wrap">
@@ -402,34 +332,6 @@ export default function ExercisesPage() {
                     className="flex items-center gap-1 shrink-0"
                     onClick={e => e.stopPropagation()}
                   >
-                    {/* Quick Toggle Active Switch */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={isProcessing}
-                      onClick={() => handleToggleActive(exercise)}
-                      className={`h-8 px-2 text-xs rounded-lg transition-colors ${
-                        exercise.isActive
-                          ? 'text-emerald-400 hover:bg-emerald-950/60'
-                          : 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
-                      }`}
-                      title={exercise.isActive ? 'Click to deactivate' : 'Click to activate'}
-                    >
-                      {isProcessing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : exercise.isActive ? (
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <ToggleRight className="h-5 w-5 text-emerald-400" />
-                          <span className="hidden sm:inline text-[11px]">Active</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <ToggleLeft className="h-5 w-5 text-zinc-500" />
-                          <span className="hidden sm:inline text-[11px]">Inactive</span>
-                        </div>
-                      )}
-                    </Button>
-
                     {/* Edit */}
                     <Button
                       variant="ghost"
@@ -444,14 +346,14 @@ export default function ExercisesPage() {
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
 
-                    {/* Delete / Archive */}
+                    {/* Delete */}
                     <Button
                       variant="ghost"
                       size="sm"
                       disabled={isProcessing}
                       onClick={() => setDeleteTarget(exercise)}
                       className="h-8 px-2 text-zinc-500 hover:text-red-400 hover:bg-red-950/30 rounded-lg text-xs"
-                      title="Delete or Archive"
+                      title="Delete Exercise"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -497,7 +399,7 @@ export default function ExercisesPage() {
                     )}
 
                     {/* Specs Summary Pill Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <div className="grid grid-cols-3 gap-2 pt-1">
                       <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800/80">
                         <span className="text-[10px] text-zinc-500 block">Default Sets</span>
                         <span className="text-xs font-semibold text-zinc-200 font-mono">
@@ -516,16 +418,6 @@ export default function ExercisesPage() {
                           {exercise.category}
                         </span>
                       </div>
-                      <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800/80">
-                        <span className="text-[10px] text-zinc-500 block">Catalog Status</span>
-                        <span
-                          className={`text-xs font-semibold ${
-                            exercise.isActive ? 'text-emerald-400' : 'text-zinc-500'
-                          }`}
-                        >
-                          {exercise.isActive ? 'Active (Selectable)' : 'Deactivated'}
-                        </span>
-                      </div>
                     </div>
 
                     {/* Minimalist Performance History, PRs, and Last Session */}
@@ -537,7 +429,6 @@ export default function ExercisesPage() {
           })
         )}
       </div>
-
       {/* Create / Edit Dialog */}
       <ExerciseDialog
         isOpen={dialogOpen}
@@ -549,7 +440,6 @@ export default function ExercisesPage() {
         exerciseToEdit={editingExercise}
         existingCategories={categories.map(c => c.category)}
       />
-
       {/* Delete / Archive Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!deleteTarget}
@@ -580,7 +470,6 @@ export default function ExercisesPage() {
           if (!isDeleting) setDeleteTarget(null);
         }}
       />
-
       {/* Floating Action Button (FAB) at Bottom Right */}
       <button
         type="button"
