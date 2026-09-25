@@ -83,10 +83,23 @@
   html {
     @apply scroll-smooth;
     text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased min-h-screen selection:bg-emerald-950 selection:text-emerald-300;
     overscroll-behavior-y: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Re-enable text selection for actual readable/editable content */
+  p, h1, h2, h3, h4, h5, h6, span, input, textarea, [contenteditable="true"] {
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
+  button, a, nav, [role="button"], [role="tab"] {
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 
