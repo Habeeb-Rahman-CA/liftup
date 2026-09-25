@@ -802,6 +802,19 @@ export const mealsApi = {
     return data.data || data;
   },
 
+  async addBatchItems(mealId: string, items: CreateMealItemDto[]): Promise<MealItemDto[]> {
+    const res = await fetchWithAuth(`/api/v1/meals/${mealId}/items/batch`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to add food items');
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
   async updateItem(itemId: string, payload: UpdateMealItemDto): Promise<MealItemDto> {
     const res = await fetchWithAuth(`/api/v1/meals/items/${itemId}`, {
       method: 'PUT',

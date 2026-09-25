@@ -259,7 +259,7 @@ export default function ActiveWorkoutPage() {
             onClick={() => router.push('/workouts')}
             className="w-full border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 h-10 rounded-xl text-xs"
           >
-            View Weekly Schedule
+            View Workout Schedule
           </Button>
         </div>
       </main>

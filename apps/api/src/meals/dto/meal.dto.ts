@@ -99,3 +99,12 @@ export class UpdateIndividualMealItemDto {
   @IsNumber()
   orderIndex?: number;
 }
+
+export class BatchCreateMealItemsDto {
+  @ApiProperty({
+    description: 'Array of meal items to add',
+    type: [CreateIndividualMealItemDto],
+  })
+  @IsNotEmpty()
+  items: CreateIndividualMealItemDto[];
+}

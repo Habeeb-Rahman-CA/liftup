@@ -7,10 +7,10 @@ import { useAuth } from '@/context/auth-context';
 import {
   LayoutDashboard,
   Dumbbell,
-  Calendar,
   History,
   TrendingUp,
   UtensilsCrossed,
+  Layers,
 } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
@@ -41,21 +41,25 @@ export const BottomNav: React.FC = () => {
         <Link
           href="/workouts"
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-            pathname === '/workouts' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
+            pathname.startsWith('/workouts')
+              ? 'text-emerald-400'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
-          <Calendar className="h-4.5 w-4.5" />
-          <span className="text-[9px] font-medium">Schedule</span>
+          <Dumbbell className="h-4.5 w-4.5" />
+          <span className="text-[9px] font-medium">Workout</span>
         </Link>
 
         <Link
           href="/exercises"
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-            pathname === '/exercises' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
+            pathname.startsWith('/exercises') || pathname.startsWith('/foods')
+              ? 'text-emerald-400'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
-          <Dumbbell className="h-4.5 w-4.5" />
-          <span className="text-[9px] font-medium">Exercises</span>
+          <Layers className="h-4.5 w-4.5" />
+          <span className="text-[9px] font-medium">Library</span>
         </Link>
 
         <Link

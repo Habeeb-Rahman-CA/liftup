@@ -210,7 +210,7 @@ export default function WorkoutsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
-            Weekly Schedule
+            Workout Schedule
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1">
             7-day split routines, exercise assignments, rest days, and target sets &amp; reps.

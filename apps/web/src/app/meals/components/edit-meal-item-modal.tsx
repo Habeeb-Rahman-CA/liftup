@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Utensils, X, Plus, Check } from 'lucide-react';
-import type { MealItemDto, CreateMealItemDto, UpdateMealItemDto } from '@liftup/types';
+import { Utensils, X, Plus, Check, Sparkles } from 'lucide-react';
+import { foodsApi } from '@/lib/api-client';
+import type { MealItemDto, CreateMealItemDto, UpdateMealItemDto, FoodDto } from '@liftup/types';
 
 interface EditMealItemModalProps {
   isOpen: boolean;
   mealName: string;
   itemToEdit?: MealItemDto | null;
   onClose: () => void;
-  onSave: (data: CreateMealItemDto | UpdateMealItemDto) => Promise<void>;
+  onSave: (_data: CreateMealItemDto | UpdateMealItemDto) => Promise<void>;
 }
 
 export const EditMealItemModal: React.FC<EditMealItemModalProps> = ({
@@ -27,6 +28,23 @@ export const EditMealItemModal: React.FC<EditMealItemModalProps> = ({
   const [displayQuantity, setDisplayQuantity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [foods, setFoods] = useState<FoodDto[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let isMounted = true;
+    foodsApi
+      .getAll()
+      .then(res => {
+        if (isMounted) setFoods(res);
+      })
+      .catch(err => console.error('Failed to load foods:', err));
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (itemToEdit) {
@@ -45,9 +63,26 @@ export const EditMealItemModal: React.FC<EditMealItemModalProps> = ({
       setDisplayQuantity('');
     }
     setError(null);
+    setShowSuggestions(false);
   }, [itemToEdit, isOpen]);
 
+  // Suggestions matching user typing
+  const matchingSuggestions = useMemo(() => {
+    if (!name.trim() || !showSuggestions) return [];
+    const q = name.toLowerCase().trim();
+    return foods
+      .filter(f => f.name.toLowerCase().includes(q) || f.category.toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [name, foods, showSuggestions]);
+
   if (!isOpen) return null;
+
+  const handleSelectFoodSuggestion = (food: FoodDto) => {
+    setName(food.name);
+    setQuantity(String(food.servingSize || 100));
+    setUnit(food.servingUnit || 'g');
+    setShowSuggestions(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,17 +146,49 @@ export const EditMealItemModal: React.FC<EditMealItemModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div>
-            <label className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">
-              Food Item Name *
-            </label>
+          {/* Food Name with catalog suggestion autocomplete */}
+          <div className="relative">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">
+                Food Item Name *
+              </label>
+              <span className="text-[10px] text-zinc-500 font-mono">Food Library Integrated</span>
+            </div>
             <Input
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={e => {
+                setName(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
               placeholder="e.g. Chicken Breast, Whole Egg, Oats"
               className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100 rounded-xl h-9"
               autoFocus
             />
+
+            {/* Suggestions Dropdown */}
+            {matchingSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-zinc-950 border border-zinc-800 rounded-xl shadow-xl z-20 overflow-hidden divide-y divide-zinc-850">
+                {matchingSuggestions.map(f => (
+                  <div
+                    key={f.id}
+                    onClick={() => handleSelectFoodSuggestion(f)}
+                    className="p-2.5 hover:bg-zinc-900 cursor-pointer flex items-center justify-between text-xs transition-colors"
+                  >
+                    <div>
+                      <span className="font-semibold text-zinc-200 block">{f.name}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        {f.category} • {f.calories} kcal ({f.servingSize}
+                        {f.servingUnit})
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
+                      Select
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">

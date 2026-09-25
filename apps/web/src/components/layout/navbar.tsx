@@ -15,6 +15,7 @@ import {
   TrendingUp,
   UtensilsCrossed,
   Apple,
+  Layers,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -60,31 +61,35 @@ export const Navbar: React.FC = () => {
 
           <Link href="/workouts" className="hidden sm:inline-flex">
             <Button
-              variant={pathname === '/workouts' ? 'default' : 'outline'}
+              variant={pathname.startsWith('/workouts') ? 'default' : 'outline'}
               size="sm"
               className={
-                pathname === '/workouts'
-                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
-                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
-              }
-            >
-              <Calendar className="h-3.5 w-3.5 mr-1.5" />
-              Schedule
-            </Button>
-          </Link>
-
-          <Link href="/exercises" className="hidden sm:inline-flex">
-            <Button
-              variant={pathname === '/exercises' ? 'default' : 'outline'}
-              size="sm"
-              className={
-                pathname === '/exercises'
+                pathname.startsWith('/workouts')
                   ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
                   : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
               }
             >
               <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
-              Exercises
+              Workout
+            </Button>
+          </Link>
+
+          <Link href="/exercises" className="hidden sm:inline-flex">
+            <Button
+              variant={
+                pathname.startsWith('/exercises') || pathname.startsWith('/foods')
+                  ? 'default'
+                  : 'outline'
+              }
+              size="sm"
+              className={
+                pathname.startsWith('/exercises') || pathname.startsWith('/foods')
+                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-200 hover:bg-emerald-800 h-8 text-xs'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 h-8 text-xs'
+              }
+            >
+              <Layers className="h-3.5 w-3.5 mr-1.5" />
+              Library
             </Button>
           </Link>
 

@@ -190,6 +190,20 @@ export class MealsController {
     return this.mealsService.addItemToMeal(userId, mealId, dto);
   }
 
+  @Post('meals/:mealId/items/batch')
+  @ApiOperation({ summary: 'Add multiple items to a meal in batch' })
+  addBatchItemsToMeal(
+    @CurrentUser('id') userId: string,
+    @Param('mealId') mealId: string,
+    @Body() body: { items: CreateIndividualMealItemDto[] },
+  ) {
+    return this.mealsService.addBatchItemsToMeal(
+      userId,
+      mealId,
+      body.items || [],
+    );
+  }
+
   @Put('items/:itemId')
   @ApiOperation({ summary: 'Update a meal food item' })
   updateItem(

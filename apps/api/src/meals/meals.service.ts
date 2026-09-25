@@ -733,6 +733,48 @@ export class MealsService {
   }
 
   /**
+   * Add multiple food items to a meal in batch
+   */
+  async addBatchItemsToMeal(
+    userId: string,
+    mealId: string,
+    items: CreateIndividualMealItemDto[],
+  ) {
+    const meal = await this.prisma.meal.findUnique({
+      where: { id: mealId },
+      include: { mealPlan: true, items: true },
+    });
+
+    if (!meal || meal.mealPlan.userId !== userId) {
+      throw new NotFoundException('Meal not found');
+    }
+
+    const startingIndex = meal.items.length;
+    const createdItems = await this.prisma.$transaction(
+      items.map((dto, idx) => {
+        const orderIndex = dto.orderIndex ?? startingIndex + idx + 1;
+        const displayQuantity =
+          dto.displayQuantity ||
+          (dto.quantity && dto.unit
+            ? `${dto.quantity}${dto.unit} ${dto.name}`
+            : dto.name);
+        return this.prisma.mealItem.create({
+          data: {
+            mealId,
+            name: dto.name,
+            quantity: dto.quantity,
+            unit: dto.unit,
+            displayQuantity,
+            orderIndex,
+          },
+        });
+      }),
+    );
+
+    return createdItems;
+  }
+
+  /**
    * Update a meal item
    */
   async updateItem(

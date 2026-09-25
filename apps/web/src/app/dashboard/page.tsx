@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useActiveWorkout } from '@/context/active-workout-context';
-import { schedulesApi, sessionsApi, progressionApi } from '@/lib/api-client';
+import { schedulesApi, sessionsApi, progressionApi, mealsApi } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SkipWorkoutModal } from '@/components/workouts/skip-workout-modal';
@@ -13,6 +13,7 @@ import { LogRestModal } from '@/components/workouts/log-rest-modal';
 import {
   Dumbbell,
   CheckCircle2,
+  Circle,
   ArrowRight,
   BedDouble,
   Clock,
@@ -24,8 +25,13 @@ import {
   ArrowDownRight,
   Minus,
   Loader2,
+  UtensilsCrossed,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Award,
 } from 'lucide-react';
-import type { TodayWorkoutDto, ProgressOverviewDto } from '@liftup/types';
+import type { TodayWorkoutDto, ProgressOverviewDto, TodayMealsResponseDto } from '@liftup/types';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -35,21 +41,50 @@ export default function DashboardPage() {
   const { activeSession, startWorkout } = useActiveWorkout();
   const [todayData, setTodayData] = useState<TodayWorkoutDto | null>(null);
   const [progressionOverview, setProgressionOverview] = useState<ProgressOverviewDto | null>(null);
+  const [todayMealsData, setTodayMealsData] = useState<TodayMealsResponseDto | null>(null);
+  const [expandedMeals, setExpandedMeals] = useState<Record<string, boolean>>({});
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [restModalOpen, setRestModalOpen] = useState(false);
 
   const refreshTodayData = async () => {
     try {
-      const [data, progressData] = await Promise.all([
+      const [data, progressData, mealsData] = await Promise.all([
         schedulesApi.getTodayWorkout(),
         progressionApi.getOverview().catch(() => null),
+        mealsApi.getToday().catch(() => null),
       ]);
       setTodayData(data);
       if (progressData) setProgressionOverview(progressData);
+      if (mealsData) setTodayMealsData(mealsData);
     } catch (err) {
-      console.error('Failed to reload today workout:', err);
+      console.error('Failed to reload today workout/meals:', err);
     }
+  };
+
+  const handleToggleMeal = async (mealLogId: string) => {
+    try {
+      const res = await mealsApi.toggleMeal(mealLogId);
+      setTodayMealsData(res);
+    } catch (err) {
+      console.error('Failed to toggle meal:', err);
+    }
+  };
+
+  const handleToggleItem = async (itemLogId: string) => {
+    try {
+      const res = await mealsApi.toggleItem(itemLogId);
+      setTodayMealsData(res);
+    } catch (err) {
+      console.error('Failed to toggle item:', err);
+    }
+  };
+
+  const toggleMealExpand = (mealId: string) => {
+    setExpandedMeals(prev => ({
+      ...prev,
+      [mealId]: !prev[mealId],
+    }));
   };
 
   const handleSkipToday = async (data: {
@@ -84,10 +119,12 @@ export default function DashboardPage() {
       Promise.all([
         schedulesApi.getTodayWorkout().catch(() => null),
         progressionApi.getOverview().catch(() => null),
+        mealsApi.getToday().catch(() => null),
       ])
-        .then(([today, progress]) => {
+        .then(([today, progress, meals]) => {
           if (today) setTodayData(today);
           if (progress) setProgressionOverview(progress);
+          if (meals) setTodayMealsData(meals);
         })
         .finally(() => {
           setLoadingSchedule(false);
@@ -566,6 +603,201 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* TODAY'S NUTRITION & MEALS CHECKLIST (EXPANDABLE - DEFAULT CLOSED) */}
+      {todayMealsData && todayMealsData.todayLog && (
+        <div className="rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 p-4 sm:p-5 space-y-3.5">
+          {/* Section Header */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-950/80 border border-emerald-800/80 text-emerald-400">
+                <UtensilsCrossed className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm sm:text-base text-zinc-100 flex items-center gap-2">
+                  <span>Today&apos;s Nutrition &amp; Meals</span>
+                  {todayMealsData.summary.totalMeals > 0 &&
+                    todayMealsData.summary.completedMeals === todayMealsData.summary.totalMeals && (
+                      <Badge className="bg-emerald-950 text-emerald-300 border-emerald-700 text-[9px] font-bold gap-1 py-0.5 px-1.5">
+                        <Award className="h-2.5 w-2.5" />
+                        100% Target Reached
+                      </Badge>
+                    )}
+                </h3>
+                <span className="text-[10px] font-mono text-zinc-400">
+                  {todayMealsData.todayLog.dateFormatted || 'Today'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="text-right hidden sm:block">
+                <span className="text-sm font-bold font-mono text-emerald-400">
+                  {todayMealsData.summary.completionRate}%
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono block">
+                  {todayMealsData.summary.completedMeals}/{todayMealsData.summary.totalMeals} Meals
+                </span>
+              </div>
+              <Link
+                href="/meals"
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:border-emerald-800/80 transition-colors"
+                title="Manage Meal Plan"
+                aria-label="Manage Meal Plan"
+              >
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-1">
+            <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div
+                className="bg-emerald-500 h-full rounded-full transition-all duration-300"
+                style={{ width: `${todayMealsData.summary.completionRate || 0}%` }}
+              />
+            </div>
+            <div className="flex sm:hidden justify-between text-[10px] font-mono text-zinc-400 pt-0.5">
+              <span>Progress: {todayMealsData.summary.completionRate}%</span>
+              <span>
+                {todayMealsData.summary.completedMeals}/{todayMealsData.summary.totalMeals} Meals
+                Done
+              </span>
+            </div>
+          </div>
+
+          {/* Today's Meals Cards (Default Closed/Collapsed) */}
+          <div className="space-y-2 pt-1">
+            {todayMealsData.todayLog.mealLogs.length === 0 ? (
+              <p className="text-xs text-zinc-500 italic py-2">
+                No meals scheduled for today. Set up a meal plan to track daily nutrition.
+              </p>
+            ) : (
+              todayMealsData.todayLog.mealLogs.map(meal => {
+                const isExpanded = !!expandedMeals[meal.id];
+                const completedCount = meal.itemLogs.filter(i => i.completed).length;
+                const totalItems = meal.itemLogs.length;
+
+                return (
+                  <div
+                    key={meal.id}
+                    className={`rounded-xl border transition-all overflow-hidden ${
+                      meal.completed
+                        ? 'bg-zinc-950/90 border-emerald-900/60'
+                        : 'bg-zinc-950/70 border-zinc-800/80'
+                    }`}
+                  >
+                    {/* Collapsible Card Header */}
+                    <div className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleMeal(meal.id)}
+                          className={`flex h-6 w-6 items-center justify-center rounded-lg border transition-colors shrink-0 ${
+                            meal.completed
+                              ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                          }`}
+                          title={
+                            meal.completed ? 'Mark as incomplete' : 'Mark entire meal as completed'
+                          }
+                        >
+                          {meal.completed ? (
+                            <CheckCircle2 className="h-4 w-4 fill-emerald-950" />
+                          ) : (
+                            <Circle className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+
+                        <div
+                          className="min-w-0 cursor-pointer select-none"
+                          onClick={() => toggleMealExpand(meal.id)}
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4
+                              className={`text-xs sm:text-sm font-bold truncate ${
+                                meal.completed ? 'text-emerald-200 line-through' : 'text-zinc-100'
+                              }`}
+                            >
+                              {meal.name}
+                            </h4>
+                            <span className="text-[10px] font-mono text-zinc-500">
+                              {completedCount}/{totalItems} items
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleMealExpand(meal.id)}
+                          className="p-1 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850 transition-colors"
+                          title={isExpanded ? 'Hide items' : 'View food items'}
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expandable Food Items Checklist (Only shown when expanded) */}
+                    {isExpanded && (
+                      <div className="px-3 sm:px-3.5 pb-3 pt-1 border-t border-zinc-850/80 space-y-1.5 bg-zinc-900/40">
+                        <div className="text-[10px] font-mono uppercase text-zinc-400 font-semibold mb-1">
+                          Food Items ({totalItems})
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {meal.itemLogs.map(item => (
+                            <div
+                              key={item.id}
+                              onClick={() => handleToggleItem(item.id)}
+                              className={`p-2 rounded-lg border cursor-pointer select-none transition-all flex items-center justify-between gap-2 ${
+                                item.completed
+                                  ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-200'
+                                  : 'bg-zinc-950/80 border-zinc-800/80 text-zinc-200 hover:border-zinc-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div
+                                  className={`flex h-4 w-4 items-center justify-center rounded border shrink-0 ${
+                                    item.completed
+                                      ? 'bg-emerald-900 border-emerald-600 text-emerald-100'
+                                      : 'bg-zinc-900 border-zinc-700 text-transparent'
+                                  }`}
+                                >
+                                  <Check className="h-2.5 w-2.5" />
+                                </div>
+                                <span
+                                  className={`text-[11px] font-medium truncate ${
+                                    item.completed ? 'line-through text-zinc-400' : 'text-zinc-200'
+                                  }`}
+                                >
+                                  {item.name}
+                                </span>
+                              </div>
+
+                              {item.displayQuantity && (
+                                <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 shrink-0">
+                                  {item.displayQuantity}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Small Progression Summary */}
       {progressionOverview && (
