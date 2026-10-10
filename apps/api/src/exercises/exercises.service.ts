@@ -3,13 +3,14 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateExerciseDto } from './dto/create-exercise.dto.js';
 import { UpdateExerciseDto } from './dto/update-exercise.dto.js';
 import { QueryExerciseDto } from './dto/query-exercise.dto.js';
 import { ReorderExercisesDto } from './dto/reorder-exercises.dto.js';
-import type { ExerciseDto } from '@liftup/types';
+import type { ExerciseDto, UserProfile } from '@liftup/types';
 
 @Injectable()
 export class ExercisesService {
@@ -109,7 +110,10 @@ export class ExercisesService {
     return this.formatExercise(exercise);
   }
 
-  async create(dto: CreateExerciseDto): Promise<ExerciseDto> {
+  async create(
+    dto: CreateExerciseDto,
+    user?: UserProfile,
+  ): Promise<ExerciseDto> {
     const categoryUpper = dto.category.trim().toUpperCase();
 
     // Check duplicate name
@@ -149,7 +153,18 @@ export class ExercisesService {
     return this.formatExercise(created);
   }
 
-  async update(id: string, dto: UpdateExerciseDto): Promise<ExerciseDto> {
+  async update(
+    id: string,
+    dto: UpdateExerciseDto,
+    user?: UserProfile,
+  ): Promise<ExerciseDto> {
+    const isAdmin = user?.role === 'ADMIN';
+    if (!isAdmin) {
+      throw new ForbiddenException(
+        'Only administrators can modify global system exercises',
+      );
+    }
+
     const exercise = await this.prisma.exercise.findUnique({
       where: { id },
     });
@@ -204,7 +219,14 @@ export class ExercisesService {
     return this.formatExercise(updated);
   }
 
-  async toggleActive(id: string): Promise<ExerciseDto> {
+  async toggleActive(id: string, user?: UserProfile): Promise<ExerciseDto> {
+    const isAdmin = user?.role === 'ADMIN';
+    if (!isAdmin) {
+      throw new ForbiddenException(
+        'Only administrators can modify exercise activation state',
+      );
+    }
+
     const exercise = await this.prisma.exercise.findUnique({
       where: { id },
     });
@@ -225,7 +247,15 @@ export class ExercisesService {
 
   async reorder(
     dto: ReorderExercisesDto,
+    user?: UserProfile,
   ): Promise<{ success: boolean; updatedCount: number }> {
+    const isAdmin = user?.role === 'ADMIN';
+    if (!isAdmin) {
+      throw new ForbiddenException(
+        'Only administrators can reorder global exercises',
+      );
+    }
+
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('No items provided for reordering');
     }
@@ -245,12 +275,25 @@ export class ExercisesService {
     };
   }
 
-  async remove(id: string): Promise<{ success: boolean; message: string }> {
+  async remove(
+    id: string,
+    user?: UserProfile,
+  ): Promise<{ success: boolean; message: string }> {
+    const isAdmin = user?.role === 'ADMIN';
+    if (!isAdmin) {
+      throw new ForbiddenException(
+        'Only administrators can delete global system exercises',
+      );
+    }
+
     const exercise = await this.prisma.exercise.findUnique({
       where: { id },
       include: {
         _count: {
-          select: { exerciseLogs: true },
+          select: {
+            exerciseLogs: true,
+            workoutDayExercises: true,
+          },
         },
       },
     });
@@ -259,15 +302,18 @@ export class ExercisesService {
       throw new NotFoundException(`Exercise with ID '${id}' not found`);
     }
 
-    if (exercise._count.exerciseLogs > 0) {
-      // If workout logs reference this exercise, soft-deactivate rather than hard delete
+    const logCount = exercise._count.exerciseLogs;
+    const routineCount = exercise._count.workoutDayExercises;
+
+    if (logCount > 0 || routineCount > 0) {
+      // If referenced in workout logs or routine templates, soft-deactivate to prevent cascade deletion
       await this.prisma.exercise.update({
         where: { id },
-        data: { isActive: false },
+        data: { isActive: false, deletedAt: new Date() },
       });
       return {
         success: true,
-        message: `Exercise is used in ${exercise._count.exerciseLogs} workout session log(s). It has been deactivated.`,
+        message: `Exercise is referenced in ${routineCount} routine slot(s) and ${logCount} workout session log(s). It has been deactivated to preserve user data.`,
       };
     }
 

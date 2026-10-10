@@ -4,7 +4,12 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 import type { UserProfile, AuthResponse, LoginPayload, RegisterPayload } from '@liftup/types';
 
-import { handleSessionExpired, TOKEN_COOKIE_KEY, REFRESH_COOKIE_KEY } from '@/lib/api-client';
+import {
+  handleSessionExpired,
+  refreshAuthTokens,
+  TOKEN_COOKIE_KEY,
+  REFRESH_COOKIE_KEY,
+} from '@/lib/api-client';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -32,11 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (!res.ok) {
-        if (res.status === 401) {
-          handleSessionExpired();
-          setToken(null);
-          setUser(null);
-        }
         return null;
       }
 
@@ -64,13 +64,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = getCookie(TOKEN_COOKIE_KEY) as string | undefined;
+      const refreshTokenStr = getCookie(REFRESH_COOKIE_KEY) as string | undefined;
+
       if (storedToken) {
         setToken(storedToken);
         const profile = await fetchCurrentUser(storedToken);
         if (profile) {
           setUser(profile);
+          setLoading(false);
+          return;
         }
       }
+
+      // If access token is missing or expired, attempt silent token refresh using the 30-day refresh token
+      if (refreshTokenStr) {
+        try {
+          const refreshed = await refreshAuthTokens();
+          if (refreshed) {
+            setToken(refreshed.accessToken);
+            const profile = await fetchCurrentUser(refreshed.accessToken);
+            if (profile) {
+              setUser(profile);
+            }
+          }
+        } catch {
+          // Refresh failed
+        }
+      }
+
       setLoading(false);
     };
 

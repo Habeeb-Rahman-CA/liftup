@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Timer, X, Plus, Minus, RotateCcw, Volume2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef } from 'react';
+import { Timer, X, Plus, Minus, RotateCcw } from 'lucide-react';
+import { playChime } from '@/lib/audio-chime';
 
 interface RestTimerProps {
   initialSeconds?: number;
@@ -14,37 +14,64 @@ export function RestTimer({ initialSeconds = 90, isOpen, onClose }: RestTimerPro
   const [targetSeconds, setTargetSeconds] = useState(initialSeconds);
   const [secondsRemaining, setSecondsRemaining] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(true);
+  const targetEndTimeRef = useRef<number | null>(null);
 
-  // Reset when opened with a new duration
+  // Initialize or reset target end time when opened or target duration changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && isRunning) {
+      targetEndTimeRef.current = Date.now() + targetSeconds * 1000;
       setSecondsRemaining(targetSeconds);
-      setIsRunning(true);
     }
   }, [isOpen, targetSeconds]);
 
-  // Countdown effect
+  // Unthrottled Countdown & Visibility Sync Effect
   useEffect(() => {
     if (!isOpen || !isRunning) return;
 
-    if (secondsRemaining <= 0) {
-      // Beep or vibrate if supported
-      if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
-        try {
-          navigator.vibrate([200, 100, 200]);
-        } catch {
-          // ignore
-        }
-      }
-      return;
+    if (!targetEndTimeRef.current) {
+      targetEndTimeRef.current = Date.now() + secondsRemaining * 1000;
     }
 
-    const interval = setInterval(() => {
-      setSecondsRemaining(prev => Math.max(0, prev - 1));
-    }, 1000);
+    const updateTimer = () => {
+      if (!targetEndTimeRef.current) return;
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - now) / 1000));
+      setSecondsRemaining(remaining);
 
-    return () => clearInterval(interval);
-  }, [isOpen, isRunning, secondsRemaining]);
+      if (remaining <= 0) {
+        setIsRunning(false);
+        // Play Web Audio API chime for iOS / cross-platform audio feedback
+        playChime();
+        // Vibrate on timer completion (Android / supported devices)
+        if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate([200, 100, 200, 100, 200]);
+          } catch {
+            // ignore vibration error
+          }
+        }
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 500);
+
+    // Immediately recalculate time when phone is unlocked or tab gains focus
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        updateTimer();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, [isOpen, isRunning]);
 
   if (!isOpen) return null;
 
@@ -57,8 +84,17 @@ export function RestTimer({ initialSeconds = 90, isOpen, onClose }: RestTimerPro
   };
 
   const adjustTime = (delta: number) => {
-    setSecondsRemaining(prev => Math.max(10, prev + delta));
-    setTargetSeconds(prev => Math.max(10, prev + delta));
+    const newTarget = Math.max(10, targetSeconds + delta);
+    const newRemaining = Math.max(0, secondsRemaining + delta);
+    setTargetSeconds(newTarget);
+    setSecondsRemaining(newRemaining);
+    targetEndTimeRef.current = Date.now() + newRemaining * 1000;
+  };
+
+  const handleReset = () => {
+    setSecondsRemaining(targetSeconds);
+    targetEndTimeRef.current = Date.now() + targetSeconds * 1000;
+    setIsRunning(true);
   };
 
   return (
@@ -114,10 +150,7 @@ export function RestTimer({ initialSeconds = 90, isOpen, onClose }: RestTimerPro
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSecondsRemaining(targetSeconds);
-                setIsRunning(true);
-              }}
+              onClick={handleReset}
               className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800"
               title="Reset"
             >
@@ -129,7 +162,7 @@ export function RestTimer({ initialSeconds = 90, isOpen, onClose }: RestTimerPro
         {/* Progress Bar */}
         <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
           <div
-            className={`h-full transition-all duration-1000 ${
+            className={`h-full transition-all duration-500 ${
               secondsRemaining === 0
                 ? 'bg-emerald-400'
                 : secondsRemaining <= 10

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
   OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -10,7 +11,7 @@ import { CreateFoodDto } from './dto/create-food.dto.js';
 import { UpdateFoodDto } from './dto/update-food.dto.js';
 import { QueryFoodDto } from './dto/query-food.dto.js';
 import { INITIAL_FOODS } from './default-foods.js';
-import type { FoodDto, FoodCategoryStatsDto } from '@liftup/types';
+import type { FoodDto, FoodCategoryStatsDto, UserProfile } from '@liftup/types';
 
 @Injectable()
 export class FoodsService implements OnModuleInit {
@@ -183,9 +184,12 @@ export class FoodsService implements OnModuleInit {
    * Create a new food item
    */
   async create(
-    userId: string | undefined,
+    user: UserProfile | undefined,
     dto: CreateFoodDto,
   ): Promise<FoodDto> {
+    const userId = user?.id;
+    const isAdmin = user?.role === 'ADMIN';
+
     const existing = await this.prisma.food.findFirst({
       where: {
         name: { equals: dto.name.trim(), mode: 'insensitive' },
@@ -232,8 +236,8 @@ export class FoodsService implements OnModuleInit {
         notes: dto.notes?.trim(),
         orderIndex: dto.orderIndex ?? nextOrder,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
-        isCustom: !!userId,
-        userId: userId || null,
+        isCustom: !isAdmin,
+        userId: !isAdmin ? userId || null : null,
       },
     });
 
@@ -245,7 +249,7 @@ export class FoodsService implements OnModuleInit {
    */
   async update(
     id: string,
-    userId: string | undefined,
+    user: UserProfile | undefined,
     dto: UpdateFoodDto,
   ): Promise<FoodDto> {
     const existing = await this.prisma.food.findUnique({
@@ -256,8 +260,20 @@ export class FoodsService implements OnModuleInit {
       throw new NotFoundException(`Food item with ID "${id}" not found`);
     }
 
-    if (existing.isCustom && existing.userId && existing.userId !== userId) {
-      throw new BadRequestException(
+    const isAdmin = user?.role === 'ADMIN';
+    if (!existing.isCustom && !isAdmin) {
+      throw new ForbiddenException(
+        'Only administrators can modify standard global food items',
+      );
+    }
+
+    if (
+      existing.isCustom &&
+      existing.userId &&
+      existing.userId !== user?.id &&
+      !isAdmin
+    ) {
+      throw new ForbiddenException(
         'You do not have permission to edit this custom food item',
       );
     }
@@ -321,7 +337,7 @@ export class FoodsService implements OnModuleInit {
    */
   async remove(
     id: string,
-    userId: string | undefined,
+    user: UserProfile | undefined,
   ): Promise<{ message: string; id: string }> {
     const existing = await this.prisma.food.findUnique({
       where: { id },
@@ -334,8 +350,20 @@ export class FoodsService implements OnModuleInit {
       throw new NotFoundException(`Food item with ID "${id}" not found`);
     }
 
-    if (existing.isCustom && existing.userId && existing.userId !== userId) {
-      throw new BadRequestException(
+    const isAdmin = user?.role === 'ADMIN';
+    if (!existing.isCustom && !isAdmin) {
+      throw new ForbiddenException(
+        'Only administrators can delete standard global food items',
+      );
+    }
+
+    if (
+      existing.isCustom &&
+      existing.userId &&
+      existing.userId !== user?.id &&
+      !isAdmin
+    ) {
+      throw new ForbiddenException(
         'You do not have permission to delete this food item',
       );
     }

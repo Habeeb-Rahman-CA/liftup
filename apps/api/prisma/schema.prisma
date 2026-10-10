@@ -80,11 +80,14 @@ model WorkoutSchedule {
   name        String
   description String?
   isActive    Boolean      @default(true)
+  deletedAt   DateTime?
   days        WorkoutDay[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, deletedAt])
 }
 
 /// Day defined within a workout schedule (e.g., "Leg Day", "Push Day")
@@ -103,6 +106,8 @@ model WorkoutDay {
 
   @@index([scheduleId])
   @@index([dayOfWeek])
+  @@index([scheduleId, dayOfWeek])
+  @@index([scheduleId, isRestDay])
 }
 
 /// Exercise assigned to a specific workout day routine
@@ -111,7 +116,7 @@ model WorkoutDayExercise {
   workoutDayId  String
   workoutDay    WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
   exerciseId    String
-  exercise      Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  exercise      Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
   targetSets    Int?       @default(3)
   targetRepsMin Int?       @default(8)
   targetRepsMax Int?       @default(12)
@@ -123,6 +128,7 @@ model WorkoutDayExercise {
   @@index([workoutDayId])
   @@index([exerciseId])
   @@index([orderIndex])
+  @@index([workoutDayId, orderIndex])
 }
 
 /// Master Exercise library catalog
@@ -137,6 +143,7 @@ model Exercise {
   defaultRepsMax      Int?                 @default(12)
   orderIndex          Int                  @default(0)
   isActive            Boolean              @default(true)
+  deletedAt           DateTime?
   workoutDayExercises WorkoutDayExercise[]
   exerciseLogs        ExerciseLog[]
   createdAt           DateTime             @default(now())
@@ -146,7 +153,9 @@ model Exercise {
   @@index([name])
   @@index([orderIndex])
   @@index([isActive])
+  @@index([deletedAt])
   @@index([category, isActive, orderIndex])
+  @@index([category, isActive, deletedAt])
 }
 
 /// Actual logged workout performance instance
@@ -174,6 +183,8 @@ model WorkoutSession {
   @@index([userId, status])
   @@index([userId, startedAt(sort: Desc)])
   @@index([userId, workoutDayId])
+  @@index([userId, status, startedAt(sort: Desc)])
+  @@index([userId, workoutDayId, status])
 }
 
 /// Exercise performed during a workout session
@@ -192,6 +203,7 @@ model ExerciseLog {
   @@index([workoutSessionId])
   @@index([exerciseId])
   @@index([workoutSessionId, order])
+  @@index([workoutSessionId, exerciseId])
 }
 
 /// Individual set metrics recorded within an exercise log
@@ -211,6 +223,8 @@ model SetLog {
 
   @@index([exerciseLogId])
   @@index([exerciseLogId, setNumber])
+  @@index([exerciseLogId, completed])
+  @@index([exerciseLogId, setNumber, completed])
 }
 
 // -----------------------------------------------------------------------------
@@ -225,12 +239,15 @@ model MealPlan {
   name        String
   description String?
   isActive    Boolean       @default(true)
+  deletedAt   DateTime?
   meals       Meal[]
   dayLogs     MealDayLog[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, deletedAt])
 }
 
 /// Planned meal within a meal plan (e.g., "Meal 1", "Meal 2", "Meal 3", "Meal 4")
@@ -271,6 +288,7 @@ model MealItem {
   @@index([foodId])
   @@index([orderIndex])
   @@index([mealId, orderIndex])
+  @@index([foodId, mealId])
 }
 
 /// Daily nutrition log instance tracking a single calendar day's eating
@@ -289,7 +307,7 @@ model MealDayLog {
   @@unique([userId, date])
   @@index([userId])
   @@index([date])
-  @@index([userId, date])
+  @@index([userId, date(sort: Desc)], map: "MealDayLog_userId_date_desc_idx")
 }
 
 /// Log of an individual meal for a specific day
@@ -311,6 +329,7 @@ model MealLog {
   @@index([mealDayLogId])
   @@index([mealId])
   @@index([mealDayLogId, orderIndex])
+  @@index([mealDayLogId, completed])
 }
 
 /// Log of an individual food item within a meal log
@@ -356,6 +375,7 @@ model Food {
   orderIndex  Int        @default(0)
   isActive    Boolean    @default(true)
   isCustom    Boolean    @default(false)
+  deletedAt   DateTime?
   userId      String?    // custom foods created by user
   user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   mealItems   MealItem[]
@@ -366,8 +386,11 @@ model Food {
   @@index([name])
   @@index([userId])
   @@index([isActive])
+  @@index([deletedAt])
   @@index([orderIndex])
   @@index([category, isActive, orderIndex])
+  @@index([isCustom, userId, isActive])
+  @@index([isCustom, userId, deletedAt])
 }
 
 // -----------------------------------------------------------------------------

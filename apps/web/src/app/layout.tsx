@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { ActiveWorkoutBar } from '@/components/layout/active-workout-bar';
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 import { OfflineSyncIndicator } from '@/components/pwa/offline-sync-indicator';
+import { PwaInstallBanner } from '@/components/pwa/pwa-install-banner';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -36,9 +37,10 @@ export const viewport: Viewport = {
   themeColor: '#09090b',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
 };
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://liftup.app';
@@ -123,6 +125,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <BottomNav />
             <ServiceWorkerRegister />
             <OfflineSyncIndicator />
+            <PwaInstallBanner />
           </ActiveWorkoutProvider>
         </AuthProvider>
       </body>

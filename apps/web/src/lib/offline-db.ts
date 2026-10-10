@@ -261,13 +261,19 @@ class OfflineDB {
       }
     }
 
-    // Coalescing: If deleting a set that was created offline and never sent to server, remove creation from queue
-    if (item.actionType === 'DELETE_SET' && item.targetEntityId?.startsWith('temp_set_')) {
-      const createdItem = existingQueue.find(
-        q => q.actionType === 'CREATE_SET' && q.targetEntityId === item.targetEntityId,
+    // Coalescing: If deleting a set, purge any queued UPDATE_SET or CREATE_SET mutations for that set
+    if (item.actionType === 'DELETE_SET' && item.targetEntityId) {
+      const pendingMutations = existingQueue.filter(
+        q =>
+          (q.actionType === 'UPDATE_SET' || q.actionType === 'CREATE_SET') &&
+          q.targetEntityId === item.targetEntityId,
       );
-      if (createdItem && createdItem.id) {
-        await this.removeSyncQueueItem(createdItem.id);
+      for (const pending of pendingMutations) {
+        if (pending.id) {
+          await this.removeSyncQueueItem(pending.id);
+        }
+      }
+      if (item.targetEntityId.startsWith('temp_set_')) {
         return 0;
       }
     }

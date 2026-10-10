@@ -20,6 +20,35 @@ import {
 } from './dto/toggle-meal.dto.js';
 import { INITIAL_MEAL_PLAN } from './default-meal-plan.js';
 
+export function getLocalDateString(
+  timezone?: string | null,
+  date: Date = new Date(),
+): string {
+  if (timezone) {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const parts = formatter.formatToParts(date);
+      const year = parts.find((p) => p.type === 'year')?.value;
+      const month = parts.find((p) => p.type === 'month')?.value;
+      const day = parts.find((p) => p.type === 'day')?.value;
+      if (year && month && day) {
+        return `${year}-${month}-${day}`;
+      }
+    } catch {
+      // Fallback if invalid timezone string
+    }
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 @Injectable()
 export class MealsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -106,7 +135,14 @@ export class MealsService {
    * Get or initialize today's meal day log for the user
    */
   async getTodayMeals(userId: string, targetDate?: string) {
-    const dateStr = targetDate || new Date().toISOString().split('T')[0];
+    let dateStr = targetDate;
+    if (!dateStr) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { timezone: true },
+      });
+      dateStr = getLocalDateString(user?.timezone);
+    }
 
     // Find existing log for this date
     let dayLog = await this.prisma.mealDayLog.findUnique({
@@ -337,14 +373,23 @@ export class MealsService {
    */
   async updateDayNote(
     userId: string,
-    dateStr: string,
+    dateStr: string | undefined,
     dto: UpdateMealDayNoteDto,
   ) {
+    let targetDate = dateStr;
+    if (!targetDate) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { timezone: true },
+      });
+      targetDate = getLocalDateString(user?.timezone);
+    }
+
     const dayLog = await this.prisma.mealDayLog.findUnique({
       where: {
         userId_date: {
           userId,
-          date: dateStr,
+          date: targetDate,
         },
       },
     });

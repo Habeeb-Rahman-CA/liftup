@@ -23,6 +23,7 @@ import { UpdateFoodDto } from './dto/update-food.dto.js';
 import { QueryFoodDto } from './dto/query-food.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import type { FoodDto, FoodCategoryStatsDto, UserProfile } from '@liftup/types';
 
 @ApiTags('foods')
 @ApiBearerAuth()
@@ -60,10 +61,10 @@ export class FoodsController {
   @ApiOperation({ summary: 'Create a new food item in library' })
   @ApiResponse({ status: 201, description: 'Food item created' })
   create(
-    @CurrentUser('id') userId: string,
+    @CurrentUser() user: UserProfile,
     @Body() createFoodDto: CreateFoodDto,
   ) {
-    return this.foodsService.create(userId, createFoodDto);
+    return this.foodsService.create(user, createFoodDto);
   }
 
   @Put(':id')
@@ -71,16 +72,16 @@ export class FoodsController {
   @ApiResponse({ status: 200, description: 'Food item updated' })
   update(
     @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser() user: UserProfile,
     @Body() updateFoodDto: UpdateFoodDto,
   ) {
-    return this.foodsService.update(id, userId, updateFoodDto);
+    return this.foodsService.update(id, user, updateFoodDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete or deactivate a food item' })
   @ApiResponse({ status: 200, description: 'Food item deleted or deactivated' })
-  remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
-    return this.foodsService.remove(id, userId);
+  remove(@Param('id') id: string, @CurrentUser() user: UserProfile) {
+    return this.foodsService.remove(id, user);
   }
 }

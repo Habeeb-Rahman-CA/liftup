@@ -195,12 +195,29 @@ export default function WorkoutsPage() {
 
   if (authLoading || (loading && !schedule)) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 bg-zinc-950">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-6 w-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-          <p className="text-xs text-zinc-500">Loading workout schedules...</p>
+      <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="space-y-2">
+          <div className="h-7 w-48 bg-zinc-800/80 rounded-xl" />
+          <div className="h-4 w-64 bg-zinc-900 rounded-lg" />
         </div>
-      </div>
+
+        {/* Schedule Summary Card Skeleton */}
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 space-y-3">
+          <div className="h-6 w-40 bg-zinc-800 rounded-lg" />
+          <div className="h-4 w-52 bg-zinc-800/60 rounded-md" />
+        </div>
+
+        {/* Days Accordions Skeleton */}
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div
+              key={i}
+              className="h-16 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4"
+            />
+          ))}
+        </div>
+      </main>
     );
   }
 

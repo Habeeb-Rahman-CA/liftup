@@ -27,6 +27,9 @@ export default function MealsPage() {
   const [loading, setLoading] = useState(true);
   const [plansList, setPlansList] = useState<MealPlanDto[]>([]);
 
+  // Computed active plan reference for handlers
+  const activePlan = plansList.find(p => p.isActive);
+
   // Modals state
   const [buildMealModalOpen, setBuildMealModalOpen] = useState(false);
   const [mealToEdit, setMealToEdit] = useState<MealDto | null>(null);
@@ -152,16 +155,34 @@ export default function MealsPage() {
 
   if (authLoading || (loading && plansList.length === 0)) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[65vh] p-8">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-          <p className="text-xs font-mono text-zinc-400">Loading meal plans...</p>
+      <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="space-y-2">
+          <div className="h-7 w-48 bg-zinc-800/80 rounded-xl" />
+          <div className="h-4 w-64 bg-zinc-900 rounded-lg" />
         </div>
-      </div>
+
+        {/* Active Plan Card Skeleton */}
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="h-6 w-36 bg-zinc-800 rounded-lg" />
+            <div className="h-8 w-24 bg-zinc-800 rounded-xl" />
+          </div>
+          <div className="h-4 w-60 bg-zinc-800/60 rounded-md" />
+        </div>
+
+        {/* Meal Cards Skeleton */}
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map(i => (
+            <div
+              key={i}
+              className="h-20 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4"
+            />
+          ))}
+        </div>
+      </main>
     );
   }
-
-  const activePlan = plansList.find(p => p.isActive);
 
   return (
     <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20">

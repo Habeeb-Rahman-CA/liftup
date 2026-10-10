@@ -398,7 +398,7 @@ export class ProgressionService {
         weeklyHistory,
       },
       strength: {
-        totalVolumeAllTime,
+        totalVolumeAllTime: Math.round(totalVolumeAllTime * 10) / 10,
         topProgressedExercises,
       },
       bodyWeight,

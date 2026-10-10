@@ -102,6 +102,41 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     };
   }, [activeSession]);
 
+  // Screen Wake Lock API to prevent device display from dimming during active workout tracking
+  useEffect(() => {
+    let wakeLockSentinel: any = null;
+
+    const requestWakeLock = async () => {
+      if (typeof window !== 'undefined' && 'wakeLock' in navigator && activeSession) {
+        try {
+          wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+        } catch {
+          // Wake lock rejected or unsupported
+        }
+      }
+    };
+
+    if (activeSession) {
+      requestWakeLock();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && activeSession) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+    };
+  }, [activeSession]);
+
   // Format seconds to HH:MM:SS or MM:SS
   const formatTime = (totalSecs: number): string => {
     const hrs = Math.floor(totalSecs / 3600);

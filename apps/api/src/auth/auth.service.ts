@@ -99,11 +99,25 @@ export class AuthService {
     };
   }
 
+  private hashRefreshToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
   async refreshToken(dto: RefreshTokenDto): Promise<AuthResponse> {
-    const storedToken = await this.prisma.refreshToken.findUnique({
-      where: { token: dto.refreshToken },
+    const hashedToken = this.hashRefreshToken(dto.refreshToken);
+
+    let storedToken = await this.prisma.refreshToken.findUnique({
+      where: { token: hashedToken },
       include: { user: true },
     });
+
+    // Backward compatibility fallback for legacy unhashed refresh tokens
+    if (!storedToken) {
+      storedToken = await this.prisma.refreshToken.findUnique({
+        where: { token: dto.refreshToken },
+        include: { user: true },
+      });
+    }
 
     if (!storedToken) {
       this.logger.warn('Auth Failure: Invalid refresh token presented');
@@ -143,8 +157,12 @@ export class AuthService {
     refreshToken?: string,
   ): Promise<{ success: boolean }> {
     if (refreshToken) {
+      const hashedToken = this.hashRefreshToken(refreshToken);
       await this.prisma.refreshToken.deleteMany({
-        where: { userId, token: refreshToken },
+        where: {
+          userId,
+          OR: [{ token: hashedToken }, { token: refreshToken }],
+        },
       });
     } else {
       await this.prisma.refreshToken.deleteMany({
@@ -180,21 +198,22 @@ export class AuthService {
       expiresIn: `${this.jwtExpiresInSeconds}s`,
     });
 
-    const refreshTokenString = crypto.randomBytes(40).toString('hex');
+    const rawRefreshToken = crypto.randomBytes(40).toString('hex');
+    const hashedToken = this.hashRefreshToken(rawRefreshToken);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + this.refreshTokenExpiresInDays);
 
     await this.prisma.refreshToken.create({
       data: {
         userId,
-        token: refreshTokenString,
+        token: hashedToken,
         expiresAt,
       },
     });
 
     return {
       accessToken,
-      refreshToken: refreshTokenString,
+      refreshToken: rawRefreshToken,
       expiresIn: this.jwtExpiresInSeconds,
     };
   }

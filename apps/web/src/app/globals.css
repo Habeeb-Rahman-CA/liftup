@@ -104,6 +104,23 @@
     user-select: none;
     -webkit-user-select: none;
   }
+
+  /* Prevent iOS auto-zoom on input focus while allowing user pinch-to-zoom */
+  @media screen and (max-width: 768px) {
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  button, input, select, textarea {
+    touch-action: manipulation;
+  }
 }
 
 /* ========================================================================= */
@@ -127,7 +144,7 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(0.75rem, calc(env(safe-area-inset-bottom, 0px) + env(keyboard-inset-height, 0px)));
 }
 .pl-safe {
   padding-left: env(safe-area-inset-left, 0px);
@@ -138,21 +155,21 @@
 
 .p-safe {
   padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(0.75rem, calc(env(safe-area-inset-bottom, 0px) + env(keyboard-inset-height, 0px)));
   padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
   padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
 }
 
 /* Modal max-height bounding to prevent overflow under status bar / gesture bar */
 .modal-safe-bounds {
-  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem);
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - env(keyboard-inset-height, 0px) - 1.5rem);
 }
 
 /* Bottom floating offset for buttons above mobile bottom bar */
 .bottom-floating-safe {
-  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px) + env(keyboard-inset-height, 0px));
 }
 
 .bottom-bar-offset {
-  bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + env(keyboard-inset-height, 0px));
 }

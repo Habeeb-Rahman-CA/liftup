@@ -197,15 +197,52 @@ export class SchedulesService {
    */
   async getTodayWorkout(userId: string): Promise<TodayWorkoutDto> {
     const scheduleDto = await this.getActiveSchedule(userId);
-    const now = new Date();
-    const todayDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
-    const todayDayName = DAY_NAMES[todayDayOfWeek];
-    const todayDateFormatted = now.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
     });
+
+    const now = new Date();
+    let todayDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+
+    if (user?.timezone) {
+      try {
+        const dayStr = new Intl.DateTimeFormat('en-US', {
+          timeZone: user.timezone,
+          weekday: 'short',
+        }).format(now);
+        const dayMap: Record<string, number> = {
+          Sun: 0,
+          Mon: 1,
+          Tue: 2,
+          Wed: 3,
+          Thu: 4,
+          Fri: 5,
+          Sat: 6,
+        };
+        if (dayMap[dayStr] !== undefined) {
+          todayDayOfWeek = dayMap[dayStr];
+        }
+      } catch {
+        // Fallback to server local day of week
+      }
+    }
+
+    const todayDayName = DAY_NAMES[todayDayOfWeek];
+    const todayDateFormatted = user?.timezone
+      ? new Intl.DateTimeFormat('en-US', {
+          timeZone: user.timezone,
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }).format(now)
+      : now.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
 
     const days = scheduleDto.days || [];
     const todayDay = days.find((d) => d.dayOfWeek === todayDayOfWeek) || null;

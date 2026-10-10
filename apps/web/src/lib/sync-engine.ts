@@ -162,6 +162,9 @@ class SyncEngine {
       this.status.state = remaining === 0 ? 'synced' : 'idle';
       this.status.lastSyncedAt = Date.now();
       this.notify();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('liftup-sync-completed'));
+      }
     } catch (error: any) {
       this.status.state = 'error';
       this.status.error = error.message || 'Sync failed';
@@ -182,14 +185,23 @@ class SyncEngine {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const payloadWithOpId = item.payload
-      ? { ...item.payload, clientOperationId: item.clientOperationId }
-      : { clientOperationId: item.clientOperationId };
+    // Ensure clientOperationId is NOT present in the JSON body payload,
+    // as NestJS ValidationPipe with forbidNonWhitelisted: true will reject un-whitelisted properties with 400 Bad Request
+    let cleanPayload = item.payload;
+    if (cleanPayload && typeof cleanPayload === 'object') {
+      const { clientOperationId, ...rest } = cleanPayload;
+      cleanPayload = rest;
+    }
+
+    const hasBodyContent =
+      cleanPayload !== undefined &&
+      cleanPayload !== null &&
+      (typeof cleanPayload !== 'object' || Object.keys(cleanPayload).length > 0);
 
     const response = await fetch(item.endpoint, {
       method: item.method,
       headers,
-      body: item.method !== 'DELETE' ? JSON.stringify(payloadWithOpId) : undefined,
+      body: item.method !== 'DELETE' && hasBodyContent ? JSON.stringify(cleanPayload) : undefined,
     });
 
     if (!response.ok && response.status !== 404) {

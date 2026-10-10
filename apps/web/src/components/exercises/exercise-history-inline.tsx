@@ -67,7 +67,8 @@ export function ExerciseHistoryInline({ exerciseId }: ExerciseHistoryInlineProps
     if (item.totalVolume) totalAllTimeVolume += item.totalVolume;
     item.sets.forEach(s => {
       if (s.completed && s.weight && s.reps) {
-        const e1rm = Math.round(s.weight * (1 + s.reps / 30));
+        const effectiveReps = Math.min(s.reps, 15);
+        const e1rm = Math.round(s.weight * (1 + effectiveReps / 30));
         if (e1rm > allTimeEstimated1RM) {
           allTimeEstimated1RM = e1rm;
           allTimePRWeight = s.weight;
@@ -76,6 +77,8 @@ export function ExerciseHistoryInline({ exerciseId }: ExerciseHistoryInlineProps
       }
     });
   });
+
+  totalAllTimeVolume = Math.round(totalAllTimeVolume * 10) / 10;
 
   const hasHistory =
     historyItems.length > 0 || (prevPerformance?.sets && prevPerformance.sets.length > 0);

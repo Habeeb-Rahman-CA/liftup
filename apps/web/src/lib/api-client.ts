@@ -1,4 +1,5 @@
-import { getCookie, deleteCookie } from 'cookies-next';
+import { getCookie, setCookie, deleteCookie } from 'cookies-next';
+import type { AuthResponse, AuthTokens } from '@liftup/types';
 import { offlineDB } from './offline-db';
 import {
   OfflineError,
@@ -73,6 +74,82 @@ import type {
 export const TOKEN_COOKIE_KEY = 'liftup_access_token';
 export const REFRESH_COOKIE_KEY = 'liftup_refresh_token';
 
+export function extractErrorMessage(errJson: any, fallback: string): string {
+  if (!errJson) return fallback;
+  if (typeof errJson.error?.message === 'string' && errJson.error.message.trim()) {
+    return errJson.error.message.trim();
+  }
+  if (typeof errJson.message === 'string' && errJson.message.trim()) {
+    return errJson.message.trim();
+  }
+  if (typeof errJson.error === 'string' && errJson.error.trim()) {
+    return errJson.error.trim();
+  }
+  return fallback;
+}
+
+let refreshTokenPromise: Promise<string | null> | null = null;
+
+export async function refreshAuthTokens(): Promise<AuthTokens | null> {
+  if (refreshTokenPromise) {
+    const token = await refreshTokenPromise;
+    if (!token) return null;
+    const currentRefreshToken = (getCookie(REFRESH_COOKIE_KEY) as string) || '';
+    return { accessToken: token, refreshToken: currentRefreshToken, expiresIn: 3600 };
+  }
+
+  const existingRefreshToken = getCookie(REFRESH_COOKIE_KEY) as string | undefined;
+  if (!existingRefreshToken) {
+    return null;
+  }
+
+  refreshTokenPromise = (async () => {
+    try {
+      const res = await fetch('/api/v1/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: existingRefreshToken }),
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = await res.json();
+      const authData: AuthResponse = data.data || data;
+      const isProd = process.env.NODE_ENV === 'production';
+
+      setCookie(TOKEN_COOKIE_KEY, authData.tokens.accessToken, {
+        maxAge: authData.tokens.expiresIn,
+        path: '/',
+        sameSite: 'lax',
+        secure: isProd,
+      });
+      setCookie(REFRESH_COOKIE_KEY, authData.tokens.refreshToken, {
+        maxAge: 30 * 24 * 60 * 60,
+        path: '/',
+        sameSite: 'lax',
+        secure: isProd,
+      });
+
+      return authData.tokens.accessToken;
+    } catch {
+      return null;
+    } finally {
+      refreshTokenPromise = null;
+    }
+  })();
+
+  const newAccessToken = await refreshTokenPromise;
+  if (!newAccessToken) return null;
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: (getCookie(REFRESH_COOKIE_KEY) as string) || existingRefreshToken,
+    expiresIn: 3600,
+  };
+}
+
 export function handleSessionExpired() {
   try {
     deleteCookie(TOKEN_COOKIE_KEY, { path: '/' });
@@ -103,7 +180,7 @@ function getAuthHeaders(): HeadersInit {
 
 async function fetchWithAuth(
   url: string,
-  init?: RequestInit & { timeoutMs?: number },
+  init?: RequestInit & { timeoutMs?: number; _isRetry?: boolean },
 ): Promise<Response> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     throw new OfflineError();
@@ -128,18 +205,34 @@ async function fetchWithAuth(
     clearTimeout(timeoutId);
 
     if (res.status === 401) {
+      // Don't attempt infinite refresh loop if this was already a retry or refresh endpoint
+      if (!init?._isRetry && !url.includes('/auth/refresh')) {
+        const refreshed = await refreshAuthTokens();
+        if (refreshed) {
+          const retryHeaders = {
+            ...(init?.headers || {}),
+            Authorization: `Bearer ${refreshed.accessToken}`,
+          };
+          return fetchWithAuth(url, {
+            ...init,
+            headers: retryHeaders,
+            _isRetry: true,
+          });
+        }
+      }
+
       handleSessionExpired();
       throw new UnauthorizedError();
     }
 
     if (res.status === 403) {
       const err = await res.json().catch(() => ({}));
-      throw new ForbiddenError(err.message || 'Access denied');
+      throw new ForbiddenError(extractErrorMessage(err, 'Access denied'));
     }
 
     if (res.status === 404) {
       const err = await res.json().catch(() => ({}));
-      throw new NotFoundError(err.message || 'Resource not found');
+      throw new NotFoundError(extractErrorMessage(err, 'Resource not found'));
     }
 
     if (res.status === 408) {
@@ -148,14 +241,14 @@ async function fetchWithAuth(
 
     if (res.status === 429) {
       const err = await res.json().catch(() => ({}));
-      throw new RateLimitError(err.message || 'Too many requests');
+      throw new RateLimitError(extractErrorMessage(err, 'Too many requests'));
     }
 
     if (res.status >= 500) {
       const err = await res.json().catch(() => ({}));
       throw new ServerError(
         res.status,
-        err.message || 'Database or server temporarily unavailable',
+        extractErrorMessage(err, 'Database or server temporarily unavailable'),
       );
     }
 
@@ -193,7 +286,7 @@ export const exercisesApi = {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to fetch exercises');
+        throw new Error(extractErrorMessage(err, 'Failed to fetch exercises'));
       }
 
       const data = await res.json();
@@ -224,7 +317,7 @@ export const exercisesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to fetch exercise categories');
+      throw new Error(extractErrorMessage(err, 'Failed to fetch exercise categories'));
     }
 
     const data = await res.json();
@@ -236,7 +329,7 @@ export const exercisesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to fetch exercise');
+      throw new Error(extractErrorMessage(err, 'Failed to fetch exercise'));
     }
 
     const data = await res.json();
@@ -251,7 +344,7 @@ export const exercisesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to create exercise');
+      throw new Error(extractErrorMessage(err, 'Failed to create exercise'));
     }
 
     const data = await res.json();
@@ -266,7 +359,7 @@ export const exercisesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to update exercise');
+      throw new Error(extractErrorMessage(err, 'Failed to update exercise'));
     }
 
     const data = await res.json();
@@ -280,7 +373,7 @@ export const exercisesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to toggle exercise status');
+      throw new Error(extractErrorMessage(err, 'Failed to toggle exercise status'));
     }
 
     const data = await res.json();
@@ -297,7 +390,7 @@ export const exercisesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to reorder exercises');
+      throw new Error(extractErrorMessage(err, 'Failed to reorder exercises'));
     }
 
     const data = await res.json();
@@ -311,7 +404,7 @@ export const exercisesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to delete exercise');
+      throw new Error(extractErrorMessage(err, 'Failed to delete exercise'));
     }
 
     const data = await res.json();
@@ -325,7 +418,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to fetch weekly schedule');
+      throw new Error(extractErrorMessage(err, 'Failed to fetch weekly schedule'));
     }
 
     const data = await res.json();
@@ -337,7 +430,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Failed to fetch today's workout");
+      throw new Error(extractErrorMessage(err, "Failed to fetch today's workout"));
     }
 
     const data = await res.json();
@@ -352,7 +445,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to update workout day');
+      throw new Error(extractErrorMessage(err, 'Failed to update workout day'));
     }
 
     const data = await res.json();
@@ -370,7 +463,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to assign exercise to workout day');
+      throw new Error(extractErrorMessage(err, 'Failed to assign exercise to workout day'));
     }
 
     const data = await res.json();
@@ -388,7 +481,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to assign exercises to workout day');
+      throw new Error(extractErrorMessage(err, 'Failed to assign exercises to workout day'));
     }
 
     const data = await res.json();
@@ -406,7 +499,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to update assigned exercise');
+      throw new Error(extractErrorMessage(err, 'Failed to update assigned exercise'));
     }
 
     const data = await res.json();
@@ -420,7 +513,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to remove assigned exercise');
+      throw new Error(extractErrorMessage(err, 'Failed to remove assigned exercise'));
     }
 
     const data = await res.json();
@@ -438,7 +531,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to reorder exercises');
+      throw new Error(extractErrorMessage(err, 'Failed to reorder exercises'));
     }
 
     const data = await res.json();
@@ -452,7 +545,7 @@ export const schedulesApi = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to reset schedule to default');
+      throw new Error(extractErrorMessage(err, 'Failed to reset schedule to default'));
     }
 
     const data = await res.json();
@@ -706,7 +799,8 @@ export const progressionApi = {
 
 export const mealsApi = {
   async getToday(date?: string): Promise<TodayMealsResponseDto> {
-    const url = date ? `/api/v1/meals/today?date=${date}` : '/api/v1/meals/today';
+    const targetDate = date || new Date().toLocaleDateString('en-CA');
+    const url = `/api/v1/meals/today?date=${targetDate}`;
     const res = await fetchWithAuth(url, { cache: 'no-store' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

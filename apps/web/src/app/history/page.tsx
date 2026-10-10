@@ -33,7 +33,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import type { WorkoutHistoryResponseDto, MealHistoryResponseDto } from '@liftup/types';
 
 type HistoryTab = 'WORKOUTS' | 'MEALS';
-type StatusFilterOption = 'ALL' | 'COMPLETED' | 'SKIPPED';
+type StatusFilterOption = 'ALL' | 'COMPLETED' | 'SKIPPED' | 'REST';
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -243,7 +243,7 @@ export default function HistoryPage() {
       {activeTab === 'WORKOUTS' && (
         <div className="space-y-4">
           {/* Summary Stats Overview Cards */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <div className="p-3 sm:p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
               <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 mb-1">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
@@ -266,6 +266,16 @@ export default function HistoryPage() {
 
             <div className="p-3 sm:p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
               <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 mb-1">
+                <Flame className="h-3.5 w-3.5 text-teal-400 shrink-0" />
+                <span className="truncate">Rest Days</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-teal-300">
+                {summary.restCount || 0}
+              </div>
+            </div>
+
+            <div className="p-3 sm:p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 mb-1">
                 <TrendingUp className="h-3.5 w-3.5 text-blue-400 shrink-0" />
                 <span className="truncate">Volume</span>
               </div>
@@ -277,7 +287,7 @@ export default function HistoryPage() {
 
           {/* Status Filter Tabs & Search Bar */}
           <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-zinc-900/90 border border-zinc-800 rounded-xl">
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-zinc-900/90 border border-zinc-800 rounded-xl">
               <button
                 type="button"
                 onClick={() => handleStatusTabChange('ALL')}
@@ -289,7 +299,8 @@ export default function HistoryPage() {
               >
                 <span>All</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-950 text-zinc-400">
-                  {summary.completedCount + summary.skippedCount}
+                  {summary.totalCount ||
+                    summary.completedCount + summary.skippedCount + (summary.restCount || 0)}
                 </span>
               </button>
 
@@ -322,6 +333,22 @@ export default function HistoryPage() {
                 <span>Skipped</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-950 text-amber-400">
                   {summary.skippedCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStatusTabChange('REST')}
+                className={`py-2 px-2 rounded-lg text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.99] ${
+                  statusFilter === 'REST'
+                    ? 'bg-teal-950/90 text-teal-300 border border-teal-800/80 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Flame className="h-3.5 w-3.5 text-teal-400 hidden sm:inline" />
+                <span>Rest</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-950 text-teal-400">
+                  {summary.restCount || 0}
                 </span>
               </button>
             </div>

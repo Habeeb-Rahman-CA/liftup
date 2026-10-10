@@ -62,87 +62,106 @@ export class SessionsService {
     userId: string,
     dto: StartSessionDto,
   ): Promise<WorkoutSessionDto> {
-    // If user already has an active IN_PROGRESS session, return that active session
-    const existingActive = await this.getActiveSession(userId);
-    if (existingActive) {
-      return existingActive;
-    }
-
-    let sessionName = dto.name?.trim() || 'Custom Workout';
-    const exerciseLogsData: any[] = [];
-
-    if (dto.workoutDayId) {
-      const workoutDay = await this.prisma.workoutDay.findUnique({
-        where: { id: dto.workoutDayId },
+    return this.prisma.$transaction(async (tx) => {
+      // Check if user already has an active IN_PROGRESS session within transaction
+      const existingActive = await tx.workoutSession.findFirst({
+        where: {
+          userId,
+          status: WorkoutSessionStatus.IN_PROGRESS,
+        },
         include: {
-          exercises: {
-            orderBy: { orderIndex: 'asc' },
-            include: { exercise: true },
+          exerciseLogs: {
+            orderBy: { order: 'asc' },
+            include: {
+              exercise: true,
+              setLogs: {
+                orderBy: { setNumber: 'asc' },
+              },
+            },
           },
         },
       });
 
-      if (workoutDay) {
-        if (!dto.name) {
-          sessionName = workoutDay.name || 'Workout Session';
-        }
+      if (existingActive) {
+        return this.formatSession(existingActive);
+      }
 
-        // Pre-populate exercise logs from routine
-        workoutDay.exercises.forEach((assignedEx, exIdx) => {
-          const targetSetsCount = assignedEx.targetSets || 3;
-          const targetReps = assignedEx.targetRepsMin || 10;
-          const setLogsData: any[] = [];
+      let sessionName = dto.name?.trim() || 'Custom Workout';
+      const exerciseLogsData: any[] = [];
 
-          // 1 optional warmup set + working sets
-          for (let s = 1; s <= targetSetsCount; s++) {
-            setLogsData.push({
-              type: SetType.WORKING,
-              setNumber: s,
-              reps: targetReps,
-              weight: null,
-              completed: false,
-              note: null,
-            });
+      if (dto.workoutDayId) {
+        const workoutDay = await tx.workoutDay.findUnique({
+          where: { id: dto.workoutDayId },
+          include: {
+            exercises: {
+              orderBy: { orderIndex: 'asc' },
+              include: { exercise: true },
+            },
+          },
+        });
+
+        if (workoutDay) {
+          if (!dto.name) {
+            sessionName = workoutDay.name || 'Workout Session';
           }
 
-          exerciseLogsData.push({
-            exerciseId: assignedEx.exerciseId,
-            order: exIdx + 1,
-            note: assignedEx.note || null,
-            setLogs: {
-              create: setLogsData,
-            },
-          });
-        });
-      }
-    }
+          // Pre-populate exercise logs from routine
+          workoutDay.exercises.forEach((assignedEx, exIdx) => {
+            const targetSetsCount = assignedEx.targetSets || 3;
+            const targetReps = assignedEx.targetRepsMin || 10;
+            const setLogsData: any[] = [];
 
-    const created = await this.prisma.workoutSession.create({
-      data: {
-        userId,
-        workoutDayId: dto.workoutDayId || null,
-        name: sessionName,
-        note: dto.note || null,
-        status: WorkoutSessionStatus.IN_PROGRESS,
-        startedAt: new Date(),
-        exerciseLogs: {
-          create: exerciseLogsData,
+            // 1 optional warmup set + working sets
+            for (let s = 1; s <= targetSetsCount; s++) {
+              setLogsData.push({
+                type: SetType.WORKING,
+                setNumber: s,
+                reps: targetReps,
+                weight: null,
+                completed: false,
+                note: null,
+              });
+            }
+
+            exerciseLogsData.push({
+              exerciseId: assignedEx.exerciseId,
+              order: exIdx + 1,
+              note: assignedEx.note || null,
+              setLogs: {
+                create: setLogsData,
+              },
+            });
+          });
+        }
+      }
+
+      const created = await tx.workoutSession.create({
+        data: {
+          userId,
+          workoutDayId: dto.workoutDayId || null,
+          name: sessionName,
+          note: dto.note || null,
+          status: WorkoutSessionStatus.IN_PROGRESS,
+          startedAt: new Date(),
+          exerciseLogs: {
+            create: exerciseLogsData,
+          },
         },
-      },
-      include: {
-        exerciseLogs: {
-          orderBy: { order: 'asc' },
-          include: {
-            exercise: true,
-            setLogs: {
-              orderBy: { setNumber: 'asc' },
+        include: {
+          exerciseLogs: {
+            orderBy: { order: 'asc' },
+            include: {
+              exercise: true,
+              setLogs: {
+                orderBy: { setNumber: 'asc' },
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    return this.formatSession(created);
+      return this.formatSession(created);
+    });
   }
 
   /**
@@ -854,7 +873,8 @@ export class SessionsService {
 
     for (const s of sets) {
       if (s.completed && s.weight && s.reps && s.weight > 0 && s.reps > 0) {
-        const e1rm = Math.round(s.weight * (1 + s.reps / 30));
+        const effectiveReps = Math.min(s.reps, 15);
+        const e1rm = Math.round(s.weight * (1 + effectiveReps / 30));
         if (e1rm > best1RM) {
           best1RM = e1rm;
           bestSetObj = {
@@ -871,10 +891,11 @@ export class SessionsService {
       const validSets = sessLog?.setLogs?.filter((s) => s.completed) || [];
       const weights = validSets.map((s) => (s.weight ? Number(s.weight) : 0));
       const maxWeight = weights.length ? Math.max(...weights) : null;
-      const totalVolume = validSets.reduce(
+      const rawVolume = validSets.reduce(
         (acc, s) => acc + (s.weight ? Number(s.weight) : 0) * (s.reps || 0),
         0,
       );
+      const totalVolume = Math.round(rawVolume * 10) / 10;
 
       return {
         date: sess.startedAt
@@ -947,10 +968,11 @@ export class SessionsService {
       const completedSets = sets.filter((s) => s.completed);
       const weights = completedSets.map((s) => s.weight || 0);
       const maxWeight = weights.length ? Math.max(...weights) : null;
-      const totalVolume = completedSets.reduce(
+      const rawVolume = completedSets.reduce(
         (acc, s) => acc + (s.weight || 0) * (s.reps || 0),
         0,
       );
+      const totalVolume = Math.round(rawVolume * 10) / 10;
 
       return {
         sessionId: sess.id,

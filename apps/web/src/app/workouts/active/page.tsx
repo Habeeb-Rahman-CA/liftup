@@ -16,6 +16,7 @@ import { FinishWorkoutModal } from './components/finish-workout-modal';
 import { AddSessionExerciseModal } from './components/add-session-exercise-modal';
 import { RestTimer } from './components/rest-timer';
 import { SkipWorkoutModal } from '@/components/workouts/skip-workout-modal';
+import { PlateCalculatorModal } from '@/components/calculator/plate-calculator-modal';
 import {
   Clock,
   CheckCircle2,
@@ -29,7 +30,9 @@ import {
   Timer,
   Flame,
   AlertCircle,
+  Calculator,
 } from 'lucide-react';
+import { useWakeLock } from '@/hooks/use-wake-lock';
 import type { WorkoutSessionDto, SetLogDto, SetType } from '@liftup/types';
 
 export default function ActiveWorkoutPage() {
@@ -44,6 +47,8 @@ export default function ActiveWorkoutPage() {
     loading: activeLoading,
   } = useActiveWorkout();
 
+  useWakeLock(!!activeSession);
+
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [sessionTitle, setSessionTitle] = useState('');
   const [finishModalOpen, setFinishModalOpen] = useState(false);
@@ -53,6 +58,7 @@ export default function ActiveWorkoutPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [restTimerOpen, setRestTimerOpen] = useState(false);
+  const [plateCalcOpen, setPlateCalcOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Auth protection
@@ -581,6 +587,13 @@ export default function ActiveWorkoutPage() {
             session will be permanently deleted.
           </div>
         }
+      />
+
+      {/* Barbell Plate Math Calculator */}
+      <PlateCalculatorModal
+        isOpen={plateCalcOpen}
+        onClose={() => setPlateCalcOpen(false)}
+        initialWeight={60}
       />
 
       {/* Floating Rest Timer */}

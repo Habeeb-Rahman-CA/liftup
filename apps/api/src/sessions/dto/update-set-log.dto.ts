@@ -64,4 +64,11 @@ export class UpdateSetLogDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional client operation ID for offline sync idempotency',
+  })
+  @IsOptional()
+  @IsString()
+  clientOperationId?: string;
 }

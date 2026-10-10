@@ -3,9 +3,12 @@ import {
   Post,
   Get,
   Body,
+  Req,
+  Res,
   UseGuards,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +17,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -21,12 +25,53 @@ import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { Public } from './decorators/public.decorator.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
-import type { AuthResponse, UserProfile } from '@liftup/types';
+import type { AuthResponse, AuthTokens, UserProfile } from '@liftup/types';
 
 @ApiTags('Auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  private setAuthCookies(res: Response, tokens: AuthTokens) {
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('liftup_refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie('liftup_access_token', tokens.accessToken, {
+      httpOnly: false,
+      secure: isProd,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: tokens.expiresIn * 1000,
+    });
+  }
+
+  private extractRefreshToken(
+    req: Request,
+    dtoRefreshToken?: string,
+  ): string | undefined {
+    if (dtoRefreshToken) return dtoRefreshToken;
+    if (req.cookies?.liftup_refresh_token)
+      return req.cookies.liftup_refresh_token;
+
+    const rawCookieHeader = req.headers.cookie;
+    if (rawCookieHeader) {
+      const cookies = Object.fromEntries(
+        rawCookieHeader.split(';').map((c) => {
+          const [k, ...v] = c.trim().split('=');
+          return [k, decodeURIComponent(v.join('='))];
+        }),
+      );
+      if (cookies['liftup_refresh_token']) {
+        return cookies['liftup_refresh_token'];
+      }
+    }
+    return undefined;
+  }
 
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
@@ -37,8 +82,13 @@ export class AuthController {
     description: 'User successfully registered',
   })
   @SwaggerApiResponse({ status: 409, description: 'Email already exists' })
-  async register(@Body() dto: RegisterDto): Promise<AuthResponse> {
-    return this.authService.register(dto);
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponse> {
+    const result = await this.authService.register(dto);
+    this.setAuthCookies(res, result.tokens);
+    return result;
   }
 
   @Public()
@@ -51,8 +101,13 @@ export class AuthController {
     description: 'User successfully authenticated',
   })
   @SwaggerApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() dto: LoginDto): Promise<AuthResponse> {
-    return this.authService.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponse> {
+    const result = await this.authService.login(dto);
+    this.setAuthCookies(res, result.tokens);
+    return result;
   }
 
   @Public()
@@ -67,8 +122,20 @@ export class AuthController {
     status: 401,
     description: 'Invalid or expired refresh token',
   })
-  async refreshToken(@Body() dto: RefreshTokenDto): Promise<AuthResponse> {
-    return this.authService.refreshToken(dto);
+  async refreshToken(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @Body() dto?: RefreshTokenDto,
+  ): Promise<AuthResponse> {
+    const tokenStr = this.extractRefreshToken(req, dto?.refreshToken);
+    if (!tokenStr) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+    const result = await this.authService.refreshToken({
+      refreshToken: tokenStr,
+    });
+    this.setAuthCookies(res, result.tokens);
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -79,9 +146,15 @@ export class AuthController {
   @SwaggerApiResponse({ status: 200, description: 'Successfully logged out' })
   async logout(
     @CurrentUser('id') userId: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
     @Body() body?: { refreshToken?: string },
   ): Promise<{ success: boolean }> {
-    return this.authService.logout(userId, body?.refreshToken);
+    const tokenStr = this.extractRefreshToken(req, body?.refreshToken);
+    const result = await this.authService.logout(userId, tokenStr);
+    res.clearCookie('liftup_refresh_token', { path: '/' });
+    res.clearCookie('liftup_access_token', { path: '/' });
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)

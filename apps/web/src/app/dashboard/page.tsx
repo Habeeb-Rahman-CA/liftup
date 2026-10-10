@@ -30,6 +30,7 @@ import {
   ChevronUp,
   Check,
   Award,
+  Settings,
 } from 'lucide-react';
 import type { TodayWorkoutDto, ProgressOverviewDto, TodayMealsResponseDto } from '@liftup/types';
 
@@ -159,12 +160,43 @@ export default function DashboardPage() {
 
   if (authLoading || (loadingSchedule && !todayData) || !user) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[65vh] p-8">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-          <p className="text-xs font-mono text-zinc-400">Loading dashboard...</p>
+      <main className="flex-1 p-3.5 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6 pb-32 sm:pb-20 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-2">
+            <div className="h-7 w-48 bg-zinc-800/80 rounded-xl" />
+            <div className="h-4 w-64 bg-zinc-900 rounded-lg" />
+          </div>
+          <div className="h-6 w-24 bg-zinc-900 rounded-full" />
         </div>
-      </div>
+
+        {/* Spotlight Card Skeleton */}
+        <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-32 bg-zinc-800 rounded-md" />
+            <div className="h-5 w-20 bg-zinc-800 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-6 w-40 bg-zinc-800 rounded-lg" />
+            <div className="h-4 w-full max-w-md bg-zinc-800/60 rounded-md" />
+          </div>
+          <div className="pt-3 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-10 bg-zinc-950/80 rounded-xl border border-zinc-800/60" />
+            ))}
+          </div>
+        </div>
+
+        {/* Stat Cards Grid Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[1, 2, 3].map(i => (
+            <div
+              key={i}
+              className="h-24 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 p-4 space-y-2"
+            />
+          ))}
+        </div>
+      </main>
     );
   }
 
@@ -460,7 +492,6 @@ export default function DashboardPage() {
                   )}
 
                   {!todayData.today.isRestDay &&
-                    (todayData.today.exercises?.length || 0) > 0 &&
                     (activeSession ? (
                       <Link href="/workouts/active">
                         <Button
@@ -471,6 +502,32 @@ export default function DashboardPage() {
                           <span>Resume Workout</span>
                         </Button>
                       </Link>
+                    ) : (todayData.today.exercises?.length || 0) === 0 ? (
+                      <>
+                        <Link href="/workouts">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-emerald-700/60 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-300 text-xs h-8.5 px-3 rounded-xl font-medium gap-1 touch-manipulation active:scale-95"
+                          >
+                            <Settings className="h-3.5 w-3.5" />
+                            <span>Configure Routine</span>
+                          </Button>
+                        </Link>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            startWorkout({
+                              workoutDayId: todayData.today!.id,
+                              name: todayData.today!.name,
+                            })
+                          }
+                          className="bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 text-xs h-8.5 px-3.5 rounded-xl font-semibold gap-1.5 shadow-md touch-manipulation active:scale-95"
+                        >
+                          <Play className="h-3.5 w-3.5 fill-current" />
+                          <span>Start Workout</span>
+                        </Button>
+                      </>
                     ) : (
                       <Button
                         size="sm"
@@ -517,6 +574,29 @@ export default function DashboardPage() {
                         today&apos;s routine
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {!todayData.today.isRestDay && (todayData.today.exercises?.length || 0) === 0 && (
+                <div className="pt-2 border-t border-zinc-800/80">
+                  <div className="p-3 rounded-xl bg-zinc-950/60 border border-amber-900/40 text-xs text-zinc-400 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Dumbbell className="h-4 w-4 text-amber-400 shrink-0" />
+                      <span className="truncate">
+                        No exercises added to this routine day yet. Start an empty workout or
+                        configure your routine.
+                      </span>
+                    </div>
+                    <Link href="/workouts" className="shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 h-7 px-2 font-medium"
+                      >
+                        Configure Routine &rarr;
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               )}

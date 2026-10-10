@@ -73,7 +73,8 @@ export function ExerciseHistoryModal({
     item.sets.forEach(s => {
       if (s.completed && s.weight && s.reps) {
         totalSetsCompleted++;
-        const e1rm = Math.round(s.weight * (1 + s.reps / 30));
+        const effectiveReps = Math.min(s.reps, 15);
+        const e1rm = Math.round(s.weight * (1 + effectiveReps / 30));
         if (e1rm > allTimeEstimated1RM) {
           allTimeEstimated1RM = e1rm;
           allTimePRWeight = s.weight;
@@ -82,6 +83,8 @@ export function ExerciseHistoryModal({
       }
     });
   });
+
+  totalAllTimeVolume = Math.round(totalAllTimeVolume * 10) / 10;
 
   return (
     <div

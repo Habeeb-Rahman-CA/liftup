@@ -2,7 +2,7 @@
   "name": "liftup-monorepo",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@12.6.0",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "turbo run dev",
     "dev:web": "turbo run dev --filter=@liftup/web",

@@ -6,12 +6,55 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
+function getPooledDatabaseUrl(): string | undefined {
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) return undefined;
+
+  try {
+    const url = new URL(dbUrl);
+    // Ensure Neon serverless pgbouncer pooling parameters are set
+    if (
+      url.hostname.includes('-pooler') ||
+      url.searchParams.get('pgbouncer') === 'true'
+    ) {
+      if (!url.searchParams.has('pgbouncer')) {
+        url.searchParams.set('pgbouncer', 'true');
+      }
+      if (!url.searchParams.has('connection_limit')) {
+        url.searchParams.set('connection_limit', '10');
+      }
+      if (!url.searchParams.has('pool_timeout')) {
+        url.searchParams.set('pool_timeout', '20');
+      }
+      return url.toString();
+    }
+  } catch {
+    // Fallback if URL parsing fails
+  }
+  return dbUrl;
+}
+
 @Injectable()
 export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
+
+  constructor() {
+    const url = getPooledDatabaseUrl();
+    super(
+      url
+        ? {
+            datasources: {
+              db: {
+                url,
+              },
+            },
+          }
+        : undefined,
+    );
+  }
 
   async onModuleInit() {
     try {

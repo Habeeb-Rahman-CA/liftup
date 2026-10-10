@@ -73,11 +73,10 @@ export class MealsController {
   @ApiOperation({ summary: "Update today's nutrition note" })
   updateDayNote(
     @CurrentUser('id') userId: string,
-    @Query('date') date: string,
     @Body() dto: UpdateMealDayNoteDto,
+    @Query('date') date?: string,
   ) {
-    const targetDate = date || new Date().toISOString().split('T')[0];
-    return this.mealsService.updateDayNote(userId, targetDate, dto);
+    return this.mealsService.updateDayNote(userId, date, dto);
   }
 
   // ---------------------------------------------------------------------------

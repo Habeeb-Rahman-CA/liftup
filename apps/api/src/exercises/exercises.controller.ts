@@ -23,12 +23,15 @@ import { UpdateExerciseDto } from './dto/update-exercise.dto.js';
 import { QueryExerciseDto } from './dto/query-exercise.dto.js';
 import { ReorderExercisesDto } from './dto/reorder-exercises.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 import { Public } from '../auth/decorators/public.decorator.js';
-import type { ExerciseDto } from '@liftup/types';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import type { ExerciseDto, UserProfile } from '@liftup/types';
 
 @ApiTags('Exercises')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller({ path: 'exercises', version: '1' })
 export class ExercisesController {
   constructor(private readonly exercisesService: ExercisesService) {}
@@ -70,54 +73,70 @@ export class ExercisesController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create new custom exercise' })
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Create new master exercise (Admin Only)' })
   @SwaggerApiResponse({
     status: 201,
     description: 'Exercise created successfully',
   })
-  async create(@Body() dto: CreateExerciseDto): Promise<ExerciseDto> {
-    return this.exercisesService.create(dto);
+  async create(
+    @Body() dto: CreateExerciseDto,
+    @CurrentUser() user: UserProfile,
+  ): Promise<ExerciseDto> {
+    return this.exercisesService.create(dto, user);
   }
 
   @Post('reorder')
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Batch reorder exercises' })
+  @ApiOperation({ summary: 'Batch reorder exercises (Admin Only)' })
   @SwaggerApiResponse({ status: 200, description: 'Exercises reordered' })
   async reorder(
     @Body() dto: ReorderExercisesDto,
+    @CurrentUser() user: UserProfile,
   ): Promise<{ success: boolean; updatedCount: number }> {
-    return this.exercisesService.reorder(dto);
+    return this.exercisesService.reorder(dto, user);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update exercise details' })
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Update exercise details (Admin Only)' })
   @SwaggerApiResponse({ status: 200, description: 'Exercise updated' })
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateExerciseDto,
+    @CurrentUser() user: UserProfile,
   ): Promise<ExerciseDto> {
-    return this.exercisesService.update(id, dto);
+    return this.exercisesService.update(id, dto, user);
   }
 
   @Patch(':id/toggle-active')
-  @ApiOperation({ summary: 'Toggle exercise active / deactivated state' })
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'Toggle exercise active / deactivated state (Admin Only)',
+  })
   @SwaggerApiResponse({
     status: 200,
     description: 'Exercise activation toggled',
   })
-  async toggleActive(@Param('id') id: string): Promise<ExerciseDto> {
-    return this.exercisesService.toggleActive(id);
+  async toggleActive(
+    @Param('id') id: string,
+    @CurrentUser() user: UserProfile,
+  ): Promise<ExerciseDto> {
+    return this.exercisesService.toggleActive(id, user);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete or archive exercise' })
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Delete or archive exercise (Admin Only)' })
   @SwaggerApiResponse({
     status: 200,
     description: 'Exercise deleted or archived',
   })
   async remove(
     @Param('id') id: string,
+    @CurrentUser() user: UserProfile,
   ): Promise<{ success: boolean; message: string }> {
-    return this.exercisesService.remove(id);
+    return this.exercisesService.remove(id, user);
   }
 }
