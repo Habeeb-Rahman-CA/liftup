@@ -62,106 +62,112 @@ export class SessionsService {
     userId: string,
     dto: StartSessionDto,
   ): Promise<WorkoutSessionDto> {
-    return this.prisma.$transaction(async (tx) => {
-      // Check if user already has an active IN_PROGRESS session within transaction
-      const existingActive = await tx.workoutSession.findFirst({
-        where: {
-          userId,
-          status: WorkoutSessionStatus.IN_PROGRESS,
-        },
-        include: {
-          exerciseLogs: {
-            orderBy: { order: 'asc' },
-            include: {
-              exercise: true,
-              setLogs: {
-                orderBy: { setNumber: 'asc' },
-              },
-            },
+    return this.prisma.$transaction(
+      async (tx) => {
+        // Check if user already has an active IN_PROGRESS session within transaction
+        const existingActive = await tx.workoutSession.findFirst({
+          where: {
+            userId,
+            status: WorkoutSessionStatus.IN_PROGRESS,
           },
-        },
-      });
-
-      if (existingActive) {
-        return this.formatSession(existingActive);
-      }
-
-      let sessionName = dto.name?.trim() || 'Custom Workout';
-      const exerciseLogsData: any[] = [];
-
-      if (dto.workoutDayId) {
-        const workoutDay = await tx.workoutDay.findUnique({
-          where: { id: dto.workoutDayId },
           include: {
-            exercises: {
-              orderBy: { orderIndex: 'asc' },
-              include: { exercise: true },
+            exerciseLogs: {
+              orderBy: { order: 'asc' },
+              include: {
+                exercise: true,
+                setLogs: {
+                  orderBy: { setNumber: 'asc' },
+                },
+              },
             },
           },
         });
 
-        if (workoutDay) {
-          if (!dto.name) {
-            sessionName = workoutDay.name || 'Workout Session';
-          }
+        if (existingActive) {
+          return this.formatSession(existingActive);
+        }
 
-          // Pre-populate exercise logs from routine
-          workoutDay.exercises.forEach((assignedEx, exIdx) => {
-            const targetSetsCount = assignedEx.targetSets || 3;
-            const targetReps = assignedEx.targetRepsMin || 10;
-            const setLogsData: any[] = [];
+        let sessionName = dto.name?.trim() || 'Custom Workout';
+        const exerciseLogsData: any[] = [];
 
-            // 1 optional warmup set + working sets
-            for (let s = 1; s <= targetSetsCount; s++) {
-              setLogsData.push({
-                type: SetType.WORKING,
-                setNumber: s,
-                reps: targetReps,
-                weight: null,
-                completed: false,
-                note: null,
-              });
+        if (dto.workoutDayId) {
+          const workoutDay = await tx.workoutDay.findUnique({
+            where: { id: dto.workoutDayId },
+            include: {
+              exercises: {
+                orderBy: { orderIndex: 'asc' },
+                include: { exercise: true },
+              },
+            },
+          });
+
+          if (workoutDay) {
+            if (!dto.name) {
+              sessionName = workoutDay.name || 'Workout Session';
             }
 
-            exerciseLogsData.push({
-              exerciseId: assignedEx.exerciseId,
-              order: exIdx + 1,
-              note: assignedEx.note || null,
-              setLogs: {
-                create: setLogsData,
-              },
-            });
-          });
-        }
-      }
+            // Pre-populate exercise logs from routine
+            workoutDay.exercises.forEach((assignedEx, exIdx) => {
+              const targetSetsCount = assignedEx.targetSets || 3;
+              const targetReps = assignedEx.targetRepsMin || 10;
+              const setLogsData: any[] = [];
 
-      const created = await tx.workoutSession.create({
-        data: {
-          userId,
-          workoutDayId: dto.workoutDayId || null,
-          name: sessionName,
-          note: dto.note || null,
-          status: WorkoutSessionStatus.IN_PROGRESS,
-          startedAt: new Date(),
-          exerciseLogs: {
-            create: exerciseLogsData,
+              // 1 optional warmup set + working sets
+              for (let s = 1; s <= targetSetsCount; s++) {
+                setLogsData.push({
+                  type: SetType.WORKING,
+                  setNumber: s,
+                  reps: targetReps,
+                  weight: null,
+                  completed: false,
+                  note: null,
+                });
+              }
+
+              exerciseLogsData.push({
+                exerciseId: assignedEx.exerciseId,
+                order: exIdx + 1,
+                note: assignedEx.note || null,
+                setLogs: {
+                  create: setLogsData,
+                },
+              });
+            });
+          }
+        }
+
+        const created = await tx.workoutSession.create({
+          data: {
+            userId,
+            workoutDayId: dto.workoutDayId || null,
+            name: sessionName,
+            note: dto.note || null,
+            status: WorkoutSessionStatus.IN_PROGRESS,
+            startedAt: new Date(),
+            exerciseLogs: {
+              create: exerciseLogsData,
+            },
           },
-        },
-        include: {
-          exerciseLogs: {
-            orderBy: { order: 'asc' },
-            include: {
-              exercise: true,
-              setLogs: {
-                orderBy: { setNumber: 'asc' },
+          include: {
+            exerciseLogs: {
+              orderBy: { order: 'asc' },
+              include: {
+                exercise: true,
+                setLogs: {
+                  orderBy: { setNumber: 'asc' },
+                },
               },
             },
           },
-        },
-      });
+        });
 
-      return this.formatSession(created);
-    });
+        return this.formatSession(created);
+      },
+      {
+        maxWait: 5000,
+        timeout: 15000,
+      },
+    );
   }
 
   /**

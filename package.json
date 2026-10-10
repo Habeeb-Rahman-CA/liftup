@@ -22,7 +22,7 @@
     "prisma:push": "pnpm --filter=@liftup/api prisma:push",
     "prisma:migrate": "pnpm --filter=@liftup/api prisma:migrate",
     "prisma:studio": "pnpm --filter=@liftup/api prisma:studio",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "clean": "turbo run clean"
   },
   "lint-staged": {
